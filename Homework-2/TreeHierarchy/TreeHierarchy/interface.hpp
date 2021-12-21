@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include<iostream>
 #include <string>
 #include <vector>
@@ -11,10 +11,19 @@ using std::invalid_argument;
 class Hierarchy
 {
 public:
-	Hierarchy(Hierarchy&& r) noexcept {}
+	// ✔
+	Hierarchy(Hierarchy&& r) noexcept : Hierarchy("")
+	{
+		fTree = std::move(r.fTree);
+	}
 
-	Hierarchy(const Hierarchy& r) {}
+	// ✔
+	Hierarchy(const Hierarchy& r)
+	{
+		fTree = r.fTree;
+	}
 
+	// ✔
 	Hierarchy(const string& data)
 	{
 		vector<string> tokens = splitBy(data, "\n");
@@ -27,30 +36,31 @@ public:
 
 			if (i == 0 && pair[0] != "Uspeshnia")
 			{
-				string msg = "There was an error during the input! Please check it out";
+				string msg = "Cannot assign anyone before Uspeshnia!";
 				throw invalid_argument(msg);
 			}
-			else if (i != 0 && !fHierarchy.find(pair[0]))
+			else if (i != 0 && !fTree.find(pair[0]))
 			{
 				string msg = "There is no trace of a boss with name {" + pair[0] + "} in the hierarchy.";
 				throw invalid_argument(msg);
 			}
 
-			fHierarchy.insert(pair[1], pair[0]);
+			fTree.insert(pair[1], pair[0]);
 		}
 	}
 
 	~Hierarchy() noexcept = default;
 	void operator=(const Hierarchy&) = delete;
 
-	string print()const { return ""; }
+	string print()const { return ""; } // ✖
 
-	int longest_chain() const { return 0; }
+	int longest_chain() const { return fTree.height(); } // ✔
 
-	bool find(const string& name) const { return fHierarchy.find(name); } /// Check
+	bool find(const string& name) const { return fTree.find(name); } // ✔
 
-	int num_employees() const { return fHierarchy.size(); }
-	int num_overloaded(int level = 20) const { return 0; }
+	int num_employees() const { return fTree.size(); } // ✔
+
+	int num_overloaded(int level = 20) const { return 0; } // ✖
 
 	string manager(const string& name) const { return ""; }
 	int num_subordinates(const string& name) const { return 0; }
@@ -64,7 +74,7 @@ public:
 		if (!find(who))
 			return false;
 
-		fHierarchy.remove(who);
+		fTree.remove(who);
 		return true;
 	}
 
@@ -73,7 +83,7 @@ public:
 		if (!find(boss))
 			return false;
 
-		fHierarchy.insert(who, boss);
+		fTree.insert(who, boss);
 		return true;
 	}
 
@@ -118,5 +128,5 @@ private:
 		}
 	}
 
-	Tree fHierarchy;
+	Tree fTree;
 };
