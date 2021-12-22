@@ -69,7 +69,7 @@ public:
 
 	int num_subordinates(const string& name) const { return fTree.getNumberOfChildrenOf(name); }
 
-	unsigned long getSalary(const string& who) const { return 500 * num_subordinates(who) + 50; }
+	unsigned long getSalary(const string& who) const { return 500 * num_subordinates(who); }
 
 	bool fire(const string& who)
 	{
@@ -79,8 +79,7 @@ public:
 		if (!find(who))
 			return false;
 
-		fTree.remove(who);
-		return true;
+		return fTree.remove(who);
 	}
 
 	bool hire(const string& who, const string& boss)

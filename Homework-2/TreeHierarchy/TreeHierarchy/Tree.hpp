@@ -103,11 +103,6 @@ public:
 	/// @return stringified tree
 	string toString() const { return toString(root); };
 
-	size_t calculateSalaryOfEmployee(const string& key)
-	{
-		return 500 * getNumberOfChildrenOf(key) + calculateSalaryOfEmployee(key);
-	}
-
 private:
 	/// @brief Tree node descriptor
 	struct Node
@@ -115,11 +110,9 @@ private:
 		string data;
 		Node* child, * brother, * parent;
 
-
 		Node(const string& data, Node* parent = nullptr, Node* child = nullptr, Node* brother = nullptr)
 			: data(data), parent(parent), child(child), brother(brother)
-		{
-		}
+		{}
 
 	} *root;
 
@@ -171,12 +164,11 @@ private:
 		if (!root)
 			return false;
 
-		/// The boss is found and now we have to attach them the new employee
 		if (root->data == boss)
 		{
-			Node* whoNode = nullptr;
-			/// Tree does not contain element who so we add it directly
-			if (!find(who))
+			Node* whoNode = findNodeByKey(this->root, who);
+
+			if (!whoNode)
 			{
 				whoNode = new Node(who, root/*, nullptr, root->child*/);
 				Node* it = root->child;
@@ -184,9 +176,7 @@ private:
 				if (it)
 				{
 					while (it->brother)
-					{
 						it = it->brother;
-					}
 
 					it->brother = whoNode;
 				}
@@ -197,10 +187,8 @@ private:
 
 				fSize++;
 			}
-			else /// Tree contains who, so we need to rearrange nodes
+			else
 			{
-				getElementByName(this->root, who, whoNode);
-
 				if (!root->child)
 				{
 					root->child = whoNode;
@@ -222,21 +210,24 @@ private:
 					}
 				}
 
-				Node* parentOfWho = nullptr;
-				getElementByName(this->root, whoNode->parent->data, parentOfWho); // Uspeshnia
-				whoNode->parent = root; // Set parent G to be Z
+				/// Once <who> has been assigned under <boss> we need to rearrange the old relations of <who>
+				Node* parentOfWho = whoNode->parent;
+				whoNode->parent = root;
 
 				if (parentOfWho->child->data == whoNode->data)
-					parentOfWho->child = whoNode->brother; // Izmestvame bratqtq s 1 nalqvo
+				{
+					parentOfWho->child = whoNode->brother;
+				}
 				else
 				{
-					whoNode = whoNode->brother;
+					Node* it = parentOfWho->child;
+					while (it->brother && it->brother->data != whoNode->data)
+						it = it->brother;
+
+					it->brother = whoNode->brother;
 				}
 
-				/*if (whoNode->brother)
-					whoNode = whoNode->brother;
-				else
-					whoNode = nullptr;*/
+				whoNode->brother = nullptr;
 			}
 
 			return true;
@@ -412,17 +403,30 @@ private:
 	/// @param key - the name of the element we will be looking for
 	/// @param res - pointer to node in which we will store the found element
 	/// @return true if the operation succeeded, false otherwise
-	bool getElementByName(Node* root, const string& key, Node*& res)
+	Node* findNodeByKey(Node* root, const string& key)
 	{
 		if (!root)
-			return false;
+			return nullptr;
 
-		if (root->data == key) {
-			res = root;
-			return true;
-		}
+		if (root->data == key)
+			return root;
 
-		return getElementByName(root->brother, key, res) || getElementByName(root->child, key, res);
+		Node* tmp = findNodeByKey(root->brother, key);
+		if (tmp)
+			return tmp;
+
+		tmp = findNodeByKey(root->child, key);
+		return tmp;
+
+		//if (!root)
+		//	return false;
+
+		//if (root->data == key) {
+		//	res = root;
+		//	return true;
+		//}
+
+		//return getElementByName(root->brother, key, res) || getElementByName(root->child, key, res);
 	}
 
 	/// @brief Given a name of node, counts all of its children
@@ -452,13 +456,5 @@ private:
 		}
 
 		return getNumberOfChildrenOf(root->child, key, res) || getNumberOfChildrenOf(root->brother, key, res);
-	}
-
-	size_t calculateSalaryOfEmployee(Node* root)
-	{
-		if (!root)
-			return 0;
-
-		return 50 * (calculateSalaryOfEmployee(root->brother) + calculateSalaryOfEmployee(root->child));
 	}
 };

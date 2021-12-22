@@ -21,9 +21,9 @@ int main()
 		cout << h.print();
 		cout << h.num_subordinates("Q12Adl") << "\n";
 		cout << h.num_subordinates("Dancho");
-		//cout << h.hire("Dancho", "Slav2") << "\n";
-		//cout << "Manager of Dancho is " << h.manager("Dancho") << "\n";
-		//cout << h.print();
+		cout << h.hire("Dancho", "Slav2") << "\n";
+		cout << "Manager of Dancho is " << h.manager("Dancho") << "\n";
+		cout << h.print();
 
 	}
 	catch (const std::exception& e)
