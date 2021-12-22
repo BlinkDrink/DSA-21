@@ -11,19 +11,16 @@ using std::invalid_argument;
 class Hierarchy
 {
 public:
-	// ✔
 	Hierarchy(Hierarchy&& r) noexcept : Hierarchy("")
 	{
 		fTree = std::move(r.fTree);
 	}
 
-	// ✔
 	Hierarchy(const Hierarchy& r)
 	{
 		fTree = r.fTree;
 	}
 
-	// ✔
 	Hierarchy(const string& data)
 	{
 		vector<string> tokens = splitBy(data, "\n");
@@ -32,6 +29,12 @@ public:
 		for (size_t i = 0; i < tokens.size(); i++)
 		{
 			vector<string> pair = splitBy(tokens[i], "-");
+			if (pair.size() != 2)
+				throw invalid_argument("Boss-employee relations need to have 2 arguments!");
+
+			trim(pair[0]);
+			trim(pair[1]);
+
 			removeEmptyStringsInVector(pair);
 
 			if (i == 0 && pair[0] != "Uspeshnia")
@@ -63,7 +66,7 @@ public:
 
 	int num_employees() const { return fTree.size(); }
 
-	int num_overloaded(int level = 20) const { return 0; } // ✖
+	int num_overloaded(int level = 20) const { return fTree.getOverloadedNodes(level); } // ✖
 
 	string manager(const string& name) const { return fTree.findParentKeyOf(name); }
 
@@ -145,6 +148,31 @@ private:
 				i--;
 			}
 		}
+	}
+
+	string& trim(string& source)
+	{
+		if (source.empty())
+		{
+			return source;
+		}
+
+		size_t start = 0;
+
+		while (source[start] == ' ')
+		{
+			source.erase(source.begin());
+		}
+
+		size_t end = source.size() > 0 ? source.size() - 1 : 0;
+
+		while (source[end] == ' ')
+		{
+			source.erase(source.begin() + end);
+			end--;
+		}
+
+		return source;
 	}
 
 	Tree fTree;

@@ -58,18 +58,18 @@ public:
 	/// @return The parent of the node with name <key>
 	string findParentKeyOf(const string& key) const
 	{
-		string res;
-		findParentKeyOf(root, key, res);
-		return res;
+		return findParentKeyOf(root, key);
 	}
 
 	/// @brief Wrapper of inner method getNumberOfChildrenOf
 	/// @param key - the key of the node for which we will determine the number of children
 	/// @return the number of children
-	size_t getNumberOfChildrenOf(const string& key) const
+	int getNumberOfChildrenOf(const string& key) const
 	{
 		size_t res = 0;
-		getNumberOfChildrenOf(root, key, res);
+		if (!getNumberOfChildrenOf(root, key, res))
+			return -1;
+
 		return res;
 	}
 
@@ -83,6 +83,11 @@ public:
 	/// @param boss - the boss of <who>
 	/// @return true if the operation succeeded, false otherwise
 	bool insert(const string& who, const string& boss) { return insert(root, who, boss); }
+
+	/// @brief Wrapper of inner method getOverloadedNodes
+	/// @param level - overloadness factor 
+	/// @return number of nodes having more than <level> descendants
+	int getOverloadedNodes(int level) const { return getOverloadedNodes(root, level); }
 
 	/// @brief Wrapper of inner method remove
 	/// Follows a specific rule given in the description of the prblem
@@ -385,17 +390,30 @@ private:
 	/// @param key - element whoose parent we will search for
 	/// @param res - string in which we will store the key of the parent
 	/// @return true if the operation succeeded, false otherwise
-	bool findParentKeyOf(Node* root, const string& key, string& res) const
+	string findParentKeyOf(Node* root, const string& key) const
 	{
+		//if (!root)
+		//	return false;
+
+		//if (root->data == key) {
+		//	res = root->parent ? root->parent->data : "";
+		//	return true;
+		//}
+
+		//return findParentKeyOf(root->brother, key, res) || findParentKeyOf(root->child, key, res);
+
 		if (!root)
-			return false;
+			return "";
 
-		if (root->data == key) {
-			res = root->parent ? root->parent->data : "";
-			return true;
-		}
+		if (root->data == key)
+			return root->parent ? root->parent->data : "";
 
-		return findParentKeyOf(root->brother, key, res) || findParentKeyOf(root->child, key, res);
+		string tmp = findParentKeyOf(root->brother, key);
+		if (!tmp.empty())
+			return tmp;
+
+		tmp = findParentKeyOf(root->child, key);
+		return tmp;
 	}
 
 	/// @brief Finds element with name <key>
@@ -417,16 +435,6 @@ private:
 
 		tmp = findNodeByKey(root->child, key);
 		return tmp;
-
-		//if (!root)
-		//	return false;
-
-		//if (root->data == key) {
-		//	res = root;
-		//	return true;
-		//}
-
-		//return getElementByName(root->brother, key, res) || getElementByName(root->child, key, res);
 	}
 
 	/// @brief Given a name of node, counts all of its children
@@ -456,5 +464,37 @@ private:
 		}
 
 		return getNumberOfChildrenOf(root->child, key, res) || getNumberOfChildrenOf(root->brother, key, res);
+	}
+
+	/// @brief Calculates the size of tree(subtree) with given root
+	/// @param root - beginning of the tree
+	/// @param level - depth of current iteration
+	/// @return number of nodes in tree
+	int getSubtreeSize(Node* root, int level = 0) const
+	{
+		if (!root)
+			return 0;
+
+		/// We need to make sure that we enter the child of the root first
+		if (level == 0)
+			return 1 + getSubtreeSize(root->child, level + 1);
+		/// Then we can spread out in all directions
+		else
+			return (1 + getSubtreeSize(root->child, level + 1) + getSubtreeSize(root->brother, level + 1));
+	}
+
+	/// @brief Finds how many nodes have more than <level> descendants
+	/// @param root - beginning of tree
+	/// @param level - overloadness factor 
+	/// @return number of nodes having more than <level> descendants
+	int getOverloadedNodes(Node* root, int level) const
+	{
+		if (!root)
+			return 0;
+
+		if (getSubtreeSize(root) - 1 > level)
+			return 1 + getOverloadedNodes(root->child, level) + getOverloadedNodes(root->brother, level);
+
+		return getOverloadedNodes(root->child, level) + getOverloadedNodes(root->brother, level);
 	}
 };
