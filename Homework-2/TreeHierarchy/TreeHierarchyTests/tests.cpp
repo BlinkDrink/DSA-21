@@ -1,5 +1,6 @@
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
+
 #include "../TreeHierarchy/interface.hpp"
 
 const string TheBoss = "Uspeshnia";

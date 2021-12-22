@@ -45,26 +45,31 @@ public:
 				throw invalid_argument(msg);
 			}
 
-			fTree.insert(pair[1], pair[0]);
+			if (!hire(pair[1], pair[0]))
+			{
+				throw invalid_argument("There was an error hiring this person");
+			}
 		}
 	}
 
 	~Hierarchy() noexcept = default;
 	void operator=(const Hierarchy&) = delete;
 
-	string print()const { return ""; } // ✖
+	string print()const { return fTree.toString(); }
 
-	int longest_chain() const { return fTree.height(); } // ✔
+	int longest_chain() const { return fTree.height(); }
 
-	bool find(const string& name) const { return fTree.find(name); } // ✔
+	bool find(const string& name) const { return fTree.find(name); }
 
-	int num_employees() const { return fTree.size(); } // ✔
+	int num_employees() const { return fTree.size(); }
 
 	int num_overloaded(int level = 20) const { return 0; } // ✖
 
-	string manager(const string& name) const { return ""; }
-	int num_subordinates(const string& name) const { return 0; }
-	unsigned long getSalary(const string& who) const { return 0; }
+	string manager(const string& name) const { return fTree.findParentKeyOf(name); }
+
+	int num_subordinates(const string& name) const { return fTree.getNumberOfChildrenOf(name); }
+
+	unsigned long getSalary(const string& who) const { return 500 * num_subordinates(who) + 50; }
 
 	bool fire(const string& who)
 	{
@@ -80,14 +85,23 @@ public:
 
 	bool hire(const string& who, const string& boss)
 	{
+		if (boss == "Uspeshnia")
+			fTree.insert(who, boss);
+
 		if (!find(boss))
 			return false;
 
-		fTree.insert(who, boss);
-		return true;
+		if (manager(boss) == who)
+			return false;
+
+		if (manager(who) == boss)
+			return true;
+
+		return fTree.insert(who, boss);
 	}
 
 	void incorporate() {}
+
 	void modernize() {}
 
 	Hierarchy join(const Hierarchy& right) const { return Hierarchy(""); }
@@ -111,6 +125,12 @@ private:
 		{
 			words.push_back(source.substr(0, pos));
 			source.erase(0, pos + delimeter.length());
+
+			if (pos = source.find(delimeter) == string::npos)
+			{
+				words.push_back(source);
+				return words;
+			}
 		}
 
 		return words;
