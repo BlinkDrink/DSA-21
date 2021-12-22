@@ -53,6 +53,11 @@ public:
 public:
 	/// @brief Public methods
 
+	/// @brief Wrapper of inner method getSalaryOf
+	/// @param who - node' salary that needs to be calculated
+	/// @return salary of node
+	unsigned long getSalaryOf(const string& who) const { return getSalaryOf(root, who); }
+
 	/// @brief Wrapper of inner method findParentKeyOf
 	/// @param key - name of item
 	/// @return The parent of the node with name <key>
@@ -67,9 +72,7 @@ public:
 	int getNumberOfChildrenOf(const string& key) const
 	{
 		size_t res = 0;
-		if (!getNumberOfChildrenOf(root, key, res))
-			return -1;
-
+		getNumberOfChildrenOf(root, key, res);
 		return res;
 	}
 
@@ -158,7 +161,7 @@ private:
 	/// @return true if the operation succeeded, false otherwise
 	bool insert(Node*& root, const string& who, const string& boss)
 	{
-		if (fSize == 0 && boss == "Uspeshnia")
+		if (fSize == 0)
 		{
 			root = new Node(boss);
 			root->child = new Node(who, root);
@@ -240,29 +243,6 @@ private:
 
 		return insert(root->child, who, boss) || insert(root->brother, who, boss);
 	}
-
-	/*Node* findPerson(Node* root, const string& key)
-	{
-		if (!root)
-			return nullptr;
-
-		if (root->key == key) return root;
-
-		/// Search in root's children
-		for (Node*& child : root->children)
-			if (child->key == key)
-				return child;
-
-		/// Search in root's children's children
-		for (Node*& child : root->children)
-		{
-			Node* n = findPerson(child, key);
-			if (n != nullptr)
-				return n;
-		}
-
-		return nullptr;
-	}*/
 
 	/// @brief Checks if the tree contains a node with given key
 	/// @param root - the begining of the tree
@@ -437,6 +417,23 @@ private:
 		return tmp;
 	}
 
+	/// @brief Const version of findNodeByKey
+	const Node* findNodeByKey(const Node* root, const string& key) const
+	{
+		if (!root)
+			return nullptr;
+
+		if (root->data == key)
+			return root;
+
+		const Node* tmp = findNodeByKey(root->brother, key);
+		if (tmp)
+			return tmp;
+
+		tmp = findNodeByKey(root->child, key);
+		return tmp;
+	}
+
 	/// @brief Given a name of node, counts all of its children
 	/// @param root - beginning of the tree
 	/// @param key - name of node
@@ -496,5 +493,32 @@ private:
 			return 1 + getOverloadedNodes(root->child, level) + getOverloadedNodes(root->brother, level);
 
 		return getOverloadedNodes(root->child, level) + getOverloadedNodes(root->brother, level);
+	}
+
+	/// @brief Calculates the salary of the given node by the formula
+	/// 500 * <num_direct_descendants> + 50 * <num_indirect_descendants>
+	/// @param root - beginning of tree
+	/// @param who - the person whoose salary needs to be calculated
+	/// @return salary of node
+	unsigned long getSalaryOf(Node* root, const string& who) const
+	{
+		if (!root)
+			return 0;
+
+		if (root->data == who)
+		{
+			unsigned long res = 0;
+			Node* it = root->child;
+
+			while (it)
+			{
+				res += 500 + 50 * (getSubtreeSize(it) - 1);
+				it = it->brother;
+			}
+
+			return res;
+		}
+
+		return getSalaryOf(root->child, who) + getSalaryOf(root->brother, who);
 	}
 };

@@ -70,13 +70,25 @@ public:
 
 	string manager(const string& name) const { return fTree.findParentKeyOf(name); }
 
-	int num_subordinates(const string& name) const { return fTree.getNumberOfChildrenOf(name); }
+	int num_subordinates(const string& name) const
+	{
+		if (!find(name))
+			return -1;
 
-	unsigned long getSalary(const string& who) const { return 500 * num_subordinates(who); }
+		return fTree.getNumberOfChildrenOf(name);
+	}
+
+	unsigned long getSalary(const string& who) const
+	{
+		if (!find(who))
+			return -1;
+
+		return fTree.getSalaryOf(who);
+	}
 
 	bool fire(const string& who)
 	{
-		if (who == "Uspehnia")
+		if (who == "Uspeshnia")
 			return false;
 
 		if (!find(who))

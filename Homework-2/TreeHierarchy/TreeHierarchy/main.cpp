@@ -25,7 +25,7 @@ int main()
 		cout << "Manager of Dancho is " << h.manager("Dancho") << "\n";
 		cout << h.print();
 
-		cout << h.num_overloaded(12);
+		cout << h.getSalary("Slavi");
 	}
 	catch (const std::exception& e)
 	{

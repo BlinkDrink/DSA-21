@@ -154,7 +154,6 @@ TEST_CASE("Overloaded") {
 	REQUIRE(empty.num_overloaded() == 0);
 }
 
-
 TEST_CASE("Salary") {
 	Hierarchy h(large);
 	Hierarchy loz(lozenec);
@@ -169,7 +168,6 @@ TEST_CASE("Salary") {
 	REQUIRE(loz.getSalary("Gosho") == 1150);
 	REQUIRE(loz.getSalary("Batko") == -1);
 }
-
 
 TEST_CASE("Fire") {
 	Hierarchy loz(loz_new);
@@ -187,7 +185,6 @@ TEST_CASE("Fire") {
 	REQUIRE(!loz.fire("baba"));
 	REQUIRE(!loz.fire(TheBoss));
 }
-
 
 TEST_CASE("Hire") {
 	Hierarchy loz(loz_new);
