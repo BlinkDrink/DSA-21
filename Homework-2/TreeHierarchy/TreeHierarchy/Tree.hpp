@@ -153,7 +153,10 @@ public:
 	};
 
 	/// @brief Wrapper of inner method modernizeTree
-	void modernizeTree() { return modernizeTree(root); }
+	void modernizeTree() { modernizeTree(root); }
+
+	/// @brief Wrapper of inner method incorporateTree
+	void incorporateTree() { incorporateTree(this->root); }
 
 private:
 	/// @brief Tree node descriptor
@@ -375,51 +378,6 @@ private:
 		return max(1 + height(root->child), height(root->brother));
 	}
 
-	/// @brief toString() method of tree
-	/// @param root - the beginning of the tree
-	/// @return Stringified tree
-	/*string toString(const Node* root) const
-	{
-		if (!root)
-			return "";
-
-		queue<const Node*> front;
-		string res;
-		front.push(root);
-		front.push(nullptr);
-
-		while (true)
-		{
-			const Node* current = front.front();
-			front.pop();
-			if (!current)
-			{
-				if (front.empty())
-					return res;
-				front.push(nullptr);
-			}
-			else
-			{
-				priority_queue<Node*, vector<Node*>, LessByName> pq;
-
-				for (Node* it = current->child; it; it = it->brother)
-				{
-					pq.push(it);
-				}
-
-				while (!pq.empty())
-				{
-					Node* el = pq.top();
-					res += current->data + "-" + el->data + '\n';
-					pq.pop();
-					front.push(el);
-				}
-			}
-		}
-
-		return res;
-	}*/
-
 	/// @brief Finds node with name <key> and accesses its parent
 	/// @param root - the begining of the tree
 	/// @param key - element whoose parent we will search for
@@ -632,18 +590,18 @@ private:
 		Node* rootBrother = root->brother;
 		Node* rootChild = root->child;
 
+		modernizeTree(rootChild, level + 1);
+		modernizeTree(rootBrother, level);
 		if (level % 2 == 1)
 		{
-			modernizeTree(rootChild, level + 1);
-			modernizeTree(rootBrother, level);
 			if (root->child)
 				remove(this->root, root->data);
 		}
-		else
+		/*else
 		{
 			modernizeTree(rootChild, level + 1);
 			modernizeTree(rootBrother, level);
-		}
+		}*/
 	}
 
 	/// @brief Finds the node with highest salary amongst the children of <root>
@@ -652,19 +610,22 @@ private:
 	/// @return the child with highest salary(or lexicographically smallest)
 	Node* getNodeToIncorporate(Node* root)
 	{
+		if (getNumberOfChildrenOf(root, root->data) < 2)
+			return nullptr;
+
 		Node* res = root->child;
 		Node* it = root->child;
 		while (it->brother)
 		{
-			int itSalary = getSalaryOf(it, it->data);
-			int itBrotherSalary = getSalaryOf(it->brother, it->data);
-			if (itSalary < itBrotherSalary)
+			int resSalary = getSalaryOf(res, res->data);
+			int itBrotherSalary = getSalaryOf(it->brother, it->brother->data);
+			if (resSalary < itBrotherSalary)
 			{
 				res = it->brother;
 			}
-			else if (itSalary == itBrotherSalary)
+			else if (resSalary == itBrotherSalary)
 			{
-				if (it->data > it->brother->data)
+				if (res->data > it->brother->data)
 				{
 					res = it->brother;
 				}
@@ -676,8 +637,46 @@ private:
 		return res;
 	}
 
+	/// @brief Incorporates the given node
+	/// @param root - node to be incorporated
+	void incorporateNode(Node* root)
+	{
+		Node* it = root->parent->child;
+		Node* itBrother = it;
+		while (itBrother)
+		{
+			if (itBrother->data != root->data)
+			{
+				itBrother = it->brother;
+				insert(this->root, it->data, root->data);
+			}
+			else
+			{
+				itBrother = itBrother->brother;
+			}
+
+			it = itBrother;
+		}
+	}
+
+	/// @brief Incorporate tree - for every group of employees with same parent
+	/// get the employee with highest salary(or if there are more than one employee with same salary
+	/// get the one with lexicographically lowest name) and make that employee boss of it's brothers
+	/// @param root Beginning of the tree
 	void incorporateTree(Node* root)
 	{
+		if (!root)
+			return;
 
+		Node* nodeToInc = getNodeToIncorporate(root);
+		incorporateTree(root->child);
+		incorporateTree(root->brother);
+		if (nodeToInc)
+			incorporateNode(nodeToInc);
+		//else
+		//{
+		//	incorporateTree(root->child);
+		//	incorporateTree(root->brother);
+		//}
 	}
 };

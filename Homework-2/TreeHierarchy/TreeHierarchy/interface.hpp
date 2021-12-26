@@ -114,7 +114,7 @@ public:
 		return fTree.insert(who, boss);
 	}
 
-	void incorporate() {}
+	void incorporate() { fTree.incorporateTree(); }
 
 	void modernize() { fTree.modernizeTree(); }
 

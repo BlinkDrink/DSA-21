@@ -26,10 +26,10 @@ int main()
 		cout << h.print();*/
 
 		cout << h.print();
-		h.modernize();
+		h.incorporate();
 		cout << h.print();
 
-		cout << h.getSalary("Slavi");
+		cout << h.getSalary("Slav1");
 	}
 	catch (const std::exception& e)
 	{
