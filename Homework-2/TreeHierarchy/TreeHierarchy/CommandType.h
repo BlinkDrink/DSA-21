@@ -1,0 +1,18 @@
+#pragma once
+enum class CommandType {
+	HELP,
+	LOAD,
+	SAVE,
+	FIND,
+	NUM_SUBORDINATES,
+	MANAGER,
+	NUM_EMPLOYEES,
+	OVERLOADED,
+	JOIN,
+	FIRE,
+	HIRE,
+	SALARY,
+	INCORPORATE,
+	MODERNIZE,
+	EXIT
+};

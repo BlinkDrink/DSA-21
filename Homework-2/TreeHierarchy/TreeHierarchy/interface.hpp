@@ -3,10 +3,12 @@
 #include <string>
 #include <vector>
 #include "Tree.hpp"
+#include "StringHelper.hpp"
 
 using std::string;
 using std::vector;
 using std::invalid_argument;
+using sh = StringHelper;
 
 class Hierarchy
 {
@@ -23,19 +25,19 @@ public:
 
 	Hierarchy(const string& data)
 	{
-		vector<string> tokens = splitBy(data, "\n");
-		removeEmptyStringsInVector(tokens);
+		vector<string> tokens = sh::splitBy(data, "\n");
+		sh::removeEmptyStringsInVector(tokens);
 
 		for (size_t i = 0; i < tokens.size(); i++)
 		{
-			vector<string> pair = splitBy(tokens[i], "-");
+			vector<string> pair = sh::splitBy(tokens[i], "-");
 			if (pair.size() != 2)
 				throw invalid_argument("Boss-employee relations need to have 2 arguments!");
 
-			trim(pair[0]);
-			trim(pair[1]);
+			sh::trim(pair[0]);
+			sh::trim(pair[1]);
 
-			removeEmptyStringsInVector(pair);
+			sh::removeEmptyStringsInVector(pair);
 
 			if (i == 0 && pair[0] != "Uspeshnia")
 			{
@@ -50,7 +52,7 @@ public:
 
 			if (!hire(pair[1], pair[0]))
 			{
-				throw invalid_argument("There was an error hiring this person");
+				throw invalid_argument("There was an error hiring " + pair[1] + " under boss " + pair[0]);
 			}
 		}
 	}
@@ -66,7 +68,7 @@ public:
 
 	int num_employees() const { return fTree.size(); }
 
-	int num_overloaded(int level = 20) const { return fTree.getOverloadedNodes(level); } // ✖
+	int num_overloaded(int level = 20) const { return fTree.getOverloadedNodes(level); }
 
 	string manager(const string& name) const { return fTree.findParentKeyOf(name); }
 
@@ -128,69 +130,5 @@ public:
 	//If you need it - add more public methods here
 private:
 	//Add whatever you need here
-
-	vector<string> splitBy(string source, const string& delimeter)
-	{
-		vector<string> words;
-		size_t pos = 0;
-
-		if (source.find(delimeter) == string::npos && !source.empty())
-		{
-			words.push_back(source);
-			return words;
-		}
-
-		while ((pos = source.find(delimeter)) != string::npos)
-		{
-			words.push_back(source.substr(0, pos));
-			source.erase(0, pos + delimeter.length());
-
-			if (pos = source.find(delimeter) == string::npos)
-			{
-				words.push_back(source);
-				return words;
-			}
-		}
-
-		return words;
-	}
-
-	void removeEmptyStringsInVector(vector<string>& parts)
-	{
-		for (size_t i = 0; i < parts.size(); i++)
-		{
-			if (parts[i].empty())
-			{
-				parts.erase(parts.begin() + i);
-				i--;
-			}
-		}
-	}
-
-	string& trim(string& source)
-	{
-		if (source.empty())
-		{
-			return source;
-		}
-
-		size_t start = 0;
-
-		while (source[start] == ' ')
-		{
-			source.erase(source.begin());
-		}
-
-		size_t end = source.size() > 0 ? source.size() - 1 : 0;
-
-		while (source[end] == ' ')
-		{
-			source.erase(source.begin() + end);
-			end--;
-		}
-
-		return source;
-	}
-
 	Tree fTree;
 };

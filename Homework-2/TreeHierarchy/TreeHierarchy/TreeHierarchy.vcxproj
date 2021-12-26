@@ -139,7 +139,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="CommandParser.hpp" />
+    <ClInclude Include="CommandType.h" />
+    <ClInclude Include="FileHandler.hpp" />
     <ClInclude Include="interface.hpp" />
+    <ClInclude Include="StringHelper.hpp" />
+    <ClInclude Include="termcolor.hpp" />
     <ClInclude Include="Tree.hpp" />
   </ItemGroup>
   <ItemGroup>

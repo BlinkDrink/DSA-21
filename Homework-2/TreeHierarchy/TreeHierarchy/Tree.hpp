@@ -104,6 +104,7 @@ public:
 	/// @return number of nodes in the tree
 	size_t size() const { return fSize; };
 
+	/// @return true if tree is empty, false otherwise 
 	bool empty() const { return fSize == 0; }
 
 	//void printByLevels() const { printByLevels(root); }
@@ -237,6 +238,11 @@ private:
 		return root ? new Node(root->data, root->parent, copy(root->child), copy(root->brother)) : root;
 	}
 
+	/// @brief Calculates the depth of the given node
+	/// @param root - beginning of the tree
+	/// @param key - name of node
+	/// @param level - current level of tree
+	/// @return depth of node
 	int depthOf(Node* root, const string& key, int level = 0) const
 	{
 		if (root == nullptr)
