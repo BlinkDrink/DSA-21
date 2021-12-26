@@ -116,7 +116,7 @@ public:
 
 	void incorporate() {}
 
-	void modernize() {}
+	void modernize() { fTree.modernizeTree(); }
 
 	Hierarchy join(const Hierarchy& right) const { return Hierarchy(""); }
 

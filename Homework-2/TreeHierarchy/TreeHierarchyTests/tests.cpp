@@ -214,6 +214,42 @@ TEST_CASE("Hire") {
 }
 
 
+TEST_CASE("Modernize") {
+	Hierarchy loz(lozenec);
+
+	CHECK(loz.longest_chain() == 5);
+	CHECK(loz.num_employees() == 13);
+	CHECK(loz.num_subordinates(TheBoss) == 3);
+	CHECK(loz.manager("Dancho") == "Gosho");
+	loz.modernize();
+
+	REQUIRE(loz.print() ==
+		"Uspeshnia-Dancho\nUspeshnia-Misho\nUspeshnia-Pesho\nUspeshnia-Slav1\nUspeshnia-Slav2\nDancho-Boris\n"
+		"Dancho-Kamen\nPesho-Alex\nSlav1-Q12Adl\n");
+	REQUIRE(loz.longest_chain() == 3);
+	REQUIRE(loz.num_employees() == 10);
+	REQUIRE(loz.manager("Dancho") == TheBoss);
+	REQUIRE(!loz.find("Gosho"));
+	REQUIRE(!loz.find("Mecho"));
+	REQUIRE(loz.find("Alex"));
+
+
+	Hierarchy h(large);
+	CHECK(h.longest_chain() == 4);
+	CHECK(h.num_employees() == 25);
+	CHECK(h.num_subordinates(TheBoss) == 1);
+	CHECK(h.manager("3") == "1");
+	h.modernize();
+	REQUIRE(h.print() ==
+		"Uspeshnia-2\nUspeshnia-3\nUspeshnia-4\nUspeshnia-5\nUspeshnia-6\nUspeshnia-7\n"
+		"2-21\n2-22\n2-23\n2-24\n2-25\n2-26\n2-27\n2-28\n3-31\n3-32\n3-33\n3-34\n3-35\n3-36\n3-37\n3-38\n3-39\n");
+	REQUIRE(h.longest_chain() == 3);
+	REQUIRE(h.num_employees() == 24);
+	REQUIRE(h.num_subordinates(TheBoss) == 6);
+	REQUIRE(h.manager("3") == TheBoss);
+	REQUIRE(!h.find("1"));
+}
+
 TEST_CASE("Incorporate") {
 	Hierarchy loz(lozenec);
 
@@ -252,42 +288,6 @@ TEST_CASE("Incorporate") {
 	REQUIRE(h.num_subordinates("3") == 6);
 }
 
-
-TEST_CASE("Modernize") {
-	Hierarchy loz(lozenec);
-
-	CHECK(loz.longest_chain() == 5);
-	CHECK(loz.num_employees() == 13);
-	CHECK(loz.num_subordinates(TheBoss) == 3);
-	CHECK(loz.manager("Dancho") == "Gosho");
-	loz.modernize();
-
-	REQUIRE(loz.print() ==
-		"Uspeshnia-Dancho\nUspeshnia-Misho\nUspeshnia-Pesho\nUspeshnia-Slav1\nUspeshnia-Slav2\nDancho-Boris\n"
-		"Dancho-Kamen\nPesho-Alex\nSlav1-Q12Adl\n");
-	REQUIRE(loz.longest_chain() == 3);
-	REQUIRE(loz.num_employees() == 10);
-	REQUIRE(loz.manager("Dancho") == TheBoss);
-	REQUIRE(!loz.find("Gosho"));
-	REQUIRE(!loz.find("Mecho"));
-	REQUIRE(loz.find("Alex"));
-
-
-	Hierarchy h(large);
-	CHECK(h.longest_chain() == 4);
-	CHECK(h.num_employees() == 25);
-	CHECK(h.num_subordinates(TheBoss) == 1);
-	CHECK(h.manager("3") == "1");
-	h.modernize();
-	REQUIRE(h.print() ==
-		"Uspeshnia-2\nUspeshnia-3\nUspeshnia-4\nUspeshnia-5\nUspeshnia-6\nUspeshnia-7\n"
-		"2-21\n2-22\n2-23\n2-24\n2-25\n2-26\n2-27\n2-28\n3-31\n3-32\n3-33\n3-34\n3-35\n3-36\n3-37\n3-38\n3-39\n");
-	REQUIRE(h.longest_chain() == 3);
-	REQUIRE(h.num_employees() == 24);
-	REQUIRE(h.num_subordinates(TheBoss) == 6);
-	REQUIRE(h.manager("3") == TheBoss);
-	REQUIRE(!h.find("1"));
-}
 
 
 TEST_CASE("Join") {

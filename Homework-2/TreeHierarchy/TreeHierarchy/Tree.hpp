@@ -7,6 +7,7 @@
 using std::string;
 using std::list;
 using std::vector;
+using std::queue;
 using std::max;
 using std::priority_queue;
 
@@ -54,8 +55,8 @@ public:
 	/// @brief Public methods
 
 	/// @brief Wrapper of inner method getSalaryOf
-	/// @param who - node' salary that needs to be calculated
-	/// @return salary of node
+	/// @param who - employee salary that needs to be calculated
+	/// @return salary of employee
 	unsigned long getSalaryOf(const string& who) const { return getSalaryOf(root, who); }
 
 	/// @brief Wrapper of inner method findParentKeyOf
@@ -71,9 +72,7 @@ public:
 	/// @return the number of children
 	int getNumberOfChildrenOf(const string& key) const
 	{
-		size_t res = 0;
-		getNumberOfChildrenOf(root, key, res);
-		return res;
+		return getNumberOfChildrenOf(root, key);
 	}
 
 	/// @brief Wrapper of inner method find
@@ -107,9 +106,54 @@ public:
 
 	//void printByLevels() const { printByLevels(root); }
 
-	/// @brief Wrapper of inner method toString
-	/// @return stringified tree
-	string toString() const { return toString(root); };
+	/// @brief toString() method of tree
+	/// @param root - the beginning of the tree
+	/// @return Stringified tree
+	/// TODO: remvoe pririty queue and use vector with std::sort
+	string toString() const
+	{
+		if (!root)
+			return "";
+
+		queue<const Node*> front;
+		string res;
+		front.push(root);
+		front.push(nullptr);
+
+		while (true)
+		{
+			const Node* current = front.front();
+			front.pop();
+			if (!current)
+			{
+				if (front.empty())
+					return res;
+				front.push(nullptr);
+			}
+			else
+			{
+				priority_queue<Node*, vector<Node*>, LessByName> pq;
+
+				for (Node* it = current->child; it; it = it->brother)
+				{
+					pq.push(it);
+				}
+
+				while (!pq.empty())
+				{
+					Node* el = pq.top();
+					res += current->data + "-" + el->data + '\n';
+					pq.pop();
+					front.push(el);
+				}
+			}
+		}
+
+		return res;
+	};
+
+	/// @brief Wrapper of inner method modernizeTree
+	void modernizeTree() { return modernizeTree(root); }
 
 private:
 	/// @brief Tree node descriptor
@@ -272,7 +316,15 @@ private:
 			Node* toDelete = root;
 			if (!root->child)
 			{
+				Node* parentOfRoot = root->parent;
 				root = root->brother;
+				Node* it = root;
+				it->parent = parentOfRoot;
+				while (it->brother)
+				{
+					it = it->brother;
+					it->parent = parentOfRoot;
+				}
 			}
 			else if (root->brother)
 			{
@@ -291,7 +343,15 @@ private:
 			}
 			else
 			{
+				Node* parentOfRoot = root->parent;
 				root = root->child;
+				Node* it = root;
+				it->parent = parentOfRoot;
+				while (it->brother)
+				{
+					it = it->brother;
+					it->parent = parentOfRoot;
+				}
 			}
 
 			--fSize;
@@ -318,12 +378,12 @@ private:
 	/// @brief toString() method of tree
 	/// @param root - the beginning of the tree
 	/// @return Stringified tree
-	string toString(const Node* root) const
+	/*string toString(const Node* root) const
 	{
 		if (!root)
 			return "";
 
-		std::queue<const Node*> front;
+		queue<const Node*> front;
 		string res;
 		front.push(root);
 		front.push(nullptr);
@@ -334,7 +394,6 @@ private:
 			front.pop();
 			if (!current)
 			{
-				//res += '\n';
 				if (front.empty())
 					return res;
 				front.push(nullptr);
@@ -342,10 +401,6 @@ private:
 			else
 			{
 				priority_queue<Node*, vector<Node*>, LessByName> pq;
-				/*for (const Node* it = current->child; it; it = it->brother)
-				{
-					res += current->data + "-" + el->data + '\n';
-				}*/
 
 				for (Node* it = current->child; it; it = it->brother)
 				{
@@ -363,7 +418,7 @@ private:
 		}
 
 		return res;
-	}
+	}*/
 
 	/// @brief Finds node with name <key> and accesses its parent
 	/// @param root - the begining of the tree
@@ -439,13 +494,14 @@ private:
 	/// @param key - name of node
 	/// @param res - variable in which result is stored
 	/// @return true if the operation succeeded, false otherwise
-	bool getNumberOfChildrenOf(Node* root, const string& key, size_t& res) const
+	int getNumberOfChildrenOf(Node* root, const string& key) const
 	{
 		if (!root)
-			return false;
+			return -1;
 
 		if (root->data == key)
 		{
+			int res = 0;
 			Node* it = root->child;
 			if (it)
 			{
@@ -457,10 +513,15 @@ private:
 				}
 			}
 
-			return true;
+			return res;
 		}
 
-		return getNumberOfChildrenOf(root->child, key, res) || getNumberOfChildrenOf(root->brother, key, res);
+		int tmp = getNumberOfChildrenOf(root->brother, key);
+		if (tmp != -1)
+			return tmp;
+
+		tmp = getNumberOfChildrenOf(root->child, key);
+		return tmp;
 	}
 
 	/// @brief Calculates the size of tree(subtree) with given root
@@ -520,5 +581,103 @@ private:
 		}
 
 		return getSalaryOf(root->child, who) + getSalaryOf(root->brother, who);
+	}
+
+	/// might remove
+	/// @brief Modernizes the give node
+	/// @param root - node to be modernized
+	void modernizeNode(Node*& root)
+	{
+		Node* toDelete = root;
+		Node* parentOfRoot = root->parent;
+
+		Node* it = root->child;
+		if (it)
+		{
+			it->parent = parentOfRoot;
+			while (it->brother)
+			{
+				it = it->brother;
+				it->parent = parentOfRoot;
+			}
+
+			if (parentOfRoot->child == toDelete)
+				it->brother = parentOfRoot->child->brother;
+			else
+				it->brother = parentOfRoot->child;
+
+			Node* itChild = parentOfRoot->child;
+			while (itChild->brother && itChild->brother->data != root->data)
+			{
+				itChild = itChild->brother;
+			}
+			itChild->brother = root->brother;
+
+			parentOfRoot->child = root->child;
+			delete root;
+			fSize--;
+			root = nullptr;
+		}
+	}
+
+	/// @brief Modernizes the tree - the nodes at every odd level(counting from root level 0)
+	/// get deleted and are replaced by their children
+	/// @param root - the beginning node of the tree
+	/// @param level - current level of the node
+	void modernizeTree(Node* root, int level = 0)
+	{
+		if (!root)
+			return;
+
+		Node* rootBrother = root->brother;
+		Node* rootChild = root->child;
+
+		if (level % 2 == 1)
+		{
+			modernizeTree(rootChild, level + 1);
+			modernizeTree(rootBrother, level);
+			if (root->child)
+				remove(this->root, root->data);
+		}
+		else
+		{
+			modernizeTree(rootChild, level + 1);
+			modernizeTree(rootBrother, level);
+		}
+	}
+
+	/// @brief Finds the node with highest salary amongst the children of <root>
+	/// If there are more than one nodes with same salary - get the first node lexicographically
+	/// @param root - node which children will be checked 
+	/// @return the child with highest salary(or lexicographically smallest)
+	Node* getNodeToIncorporate(Node* root)
+	{
+		Node* res = root->child;
+		Node* it = root->child;
+		while (it->brother)
+		{
+			int itSalary = getSalaryOf(it, it->data);
+			int itBrotherSalary = getSalaryOf(it->brother, it->data);
+			if (itSalary < itBrotherSalary)
+			{
+				res = it->brother;
+			}
+			else if (itSalary == itBrotherSalary)
+			{
+				if (it->data > it->brother->data)
+				{
+					res = it->brother;
+				}
+			}
+
+			it = it->brother;
+		}
+
+		return res;
+	}
+
+	void incorporateTree(Node* root)
+	{
+
 	}
 };
