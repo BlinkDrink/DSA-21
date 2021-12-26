@@ -104,6 +104,8 @@ public:
 	/// @return number of nodes in the tree
 	size_t size() const { return fSize; };
 
+	bool empty() const { return fSize == 0; }
+
 	//void printByLevels() const { printByLevels(root); }
 
 	/// @brief toString() method of tree
@@ -158,6 +160,11 @@ public:
 	/// @brief Wrapper of inner method incorporateTree
 	void incorporateTree() { incorporateTree(this->root); }
 
+	/// @brief Wrapper of inner method join
+	/// @param other - tree to be joined with *this
+	/// @return Newly merged tree
+	Tree join(const Tree& other) const { return join(*this, other); }
+
 private:
 	/// @brief Tree node descriptor
 	struct Node
@@ -168,6 +175,35 @@ private:
 		Node(const string& data, Node* parent = nullptr, Node* child = nullptr, Node* brother = nullptr)
 			: data(data), parent(parent), child(child), brother(brother)
 		{}
+
+		/// @brief Check whether current node has a child with name <key>
+		/// @param key - name to search for in the children of current node
+		/// @return true if contained, false otherwise
+		bool contains(const string& key) const
+		{
+			Node* it = child;
+			while (it)
+			{
+				if (it->data == key)
+					return true;
+
+				it = it->brother;
+			}
+
+			return false;
+		}
+
+		/// @brief Adds node <what> to the children of current node
+		/// @param what - node to be added
+		void addChild(Node* what)
+		{
+			Node* it = child;
+			while (it->brother)
+			{
+				it = it->brother;
+			}
+			it->brother = what;
+		}
 
 	} *root;
 
@@ -199,6 +235,17 @@ private:
 	Node* copy(Node* root)
 	{
 		return root ? new Node(root->data, root->parent, copy(root->child), copy(root->brother)) : root;
+	}
+
+	int depthOf(Node* root, const string& key, int level = 0) const
+	{
+		if (root == nullptr)
+			return 0;
+
+		if (root->data == key)
+			return level;
+
+		return depthOf(root->child, key, level + 1) + depthOf(root->brother, key, level);
 	}
 
 	/// @brief Inserts element <who> underneath <boss>
@@ -340,7 +387,6 @@ private:
 					it->parent = parentOfRemovedElement;
 				}
 
-				//it->parent = parentOfRemovedElement;
 				it->brother = root->brother;
 				root = root->child;
 			}
@@ -496,7 +542,7 @@ private:
 			return 1 + getSubtreeSize(root->child, level + 1);
 		/// Then we can spread out in all directions
 		else
-			return (1 + getSubtreeSize(root->child, level + 1) + getSubtreeSize(root->brother, level + 1));
+			return (1 + getSubtreeSize(root->child, level + 1) + getSubtreeSize(root->brother, level));
 	}
 
 	/// @brief Finds how many nodes have more than <level> descendants
@@ -592,16 +638,10 @@ private:
 
 		modernizeTree(rootChild, level + 1);
 		modernizeTree(rootBrother, level);
+
 		if (level % 2 == 1)
-		{
 			if (root->child)
 				remove(this->root, root->data);
-		}
-		/*else
-		{
-			modernizeTree(rootChild, level + 1);
-			modernizeTree(rootBrother, level);
-		}*/
 	}
 
 	/// @brief Finds the node with highest salary amongst the children of <root>
@@ -669,14 +709,83 @@ private:
 			return;
 
 		Node* nodeToInc = getNodeToIncorporate(root);
+
 		incorporateTree(root->child);
 		incorporateTree(root->brother);
+
 		if (nodeToInc)
 			incorporateNode(nodeToInc);
-		//else
-		//{
-		//	incorporateTree(root->child);
-		//	incorporateTree(root->brother);
-		//}
+	}
+
+	/// @brief Creates list of nodes of current tree in breath-first traversal order
+	/// @return the list of nodes in b-f traversal order
+	list<Node*> bfs() const
+	{
+		list<Node*> res;
+		queue<Node*> front;
+		front.push(root);
+
+		while (!front.empty())
+		{
+			Node* current = front.front();
+			front.pop();
+			res.push_back(current);
+
+			if (current)
+			{
+				Node* it = current->child;
+				while (it)
+				{
+					front.push(it);
+					it = it->brother;
+				}
+			}
+		}
+		return res;
+	}
+
+	/// @brief Given two trees, create a merged tree of the two
+	/// @param left - left tree
+	/// @param right - right tree
+	/// @return Merged tree created from left + right
+	Tree join(const Tree& left, const Tree& right) const
+	{
+		Tree leftCpy(left);
+
+		for (Node* it : right.bfs())
+		{
+			if (!it->parent)
+				continue;
+
+			/// Parent of it in left tree( it is in right tree)
+			Node* found = leftCpy.findNodeByKey(leftCpy.root, it->parent->data);
+			if (!found->contains(it->data)) /// Is it contained in its parent in left tree
+			{
+				if (!leftCpy.find(it->data)) /// Is it contained somewhere in left tree
+				{
+					leftCpy.insert(it->data, found->data); // if not contained then just add it underneath its parent
+				}
+				else
+				{
+					string itParentKey = leftCpy.findParentKeyOf(it->data);
+					int depthFound = leftCpy.depthOf(leftCpy.root, found->data);
+					int depthItParent = leftCpy.depthOf(leftCpy.root, itParentKey);
+					if (depthFound < depthItParent)
+					{
+						leftCpy.insert(it->data, found->data); /// If depth of found is lower than the parent of the existing element in left
+															   /// then add it underneath found
+					}
+					else if (depthFound == depthItParent) /// if depths are equal, check their names lexicographically
+					{
+						if (found->data < itParentKey)
+						{
+							leftCpy.insert(it->data, found->data);
+						}
+					}
+				}
+			}
+		}
+
+		return leftCpy;
 	}
 };

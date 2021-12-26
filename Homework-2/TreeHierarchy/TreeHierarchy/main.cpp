@@ -11,8 +11,25 @@ int main()
 {
 	try
 	{
-		Hierarchy h("Uspeshnia-Gosho\nUspeshnia-Misho\nUspeshnia-Slavi\nGosho-Pesho\nGosho-Dancho\nSlavi-Slav1\nSlavi-Slav2\nPesho-Alex\nDancho-Boris\nDancho-Kamen\nSlav1-Mecho\nMecho-Q12Adl"
+		Hierarchy h(
+			"Uspeshnia - Gosho \n"
+			"Uspeshnia - Misho \n"
+			"Gosho     - Pesho \n"
+			"Gosho     - Dancho\n"
+			"Pesho     - Alex  \n"
+			"Dancho    - Boris \n"
+			"Dancho    - Kamen \n"
+			"Uspeshnia - Slavi \n"
+			"Slavi     - Slav1 \n"
+			"Slavi     - Slav2 \n"
+			"Slav1     - Mecho \n"
+			"Mecho     - Q12Adl\n"
 		);
+
+		Hierarchy g
+		(" Uspeshnia   -  MishoPetrov \n"
+			" MishoPetrov -  Misho       \n"
+			" MishoPetrov -  Slav        \n");
 
 		/*cout << h.longest_chain() << std::endl;
 		cout << "Manager of Misho is " << h.manager("Misho") << "\n";
@@ -25,9 +42,8 @@ int main()
 		cout << "Manager of Dancho is " << h.manager("Dancho") << "\n";
 		cout << h.print();*/
 
-		cout << h.print();
-		h.incorporate();
-		cout << h.print();
+		Hierarchy res = h.join(g);
+		cout << res.print();
 
 		cout << h.getSalary("Slav1");
 	}

@@ -289,7 +289,6 @@ TEST_CASE("Incorporate") {
 }
 
 
-
 TEST_CASE("Join") {
 	Hierarchy l_new(loz_new);
 	Hierarchy loz(lozenec);

@@ -118,7 +118,12 @@ public:
 
 	void modernize() { fTree.modernizeTree(); }
 
-	Hierarchy join(const Hierarchy& right) const { return Hierarchy(""); }
+	Hierarchy join(const Hierarchy& right) const
+	{
+		Tree merged = fTree.size() > right.fTree.size() ? fTree.join(right.fTree) : right.fTree.join(fTree);
+		Hierarchy res(merged.toString());
+		return res;
+	}
 
 	//If you need it - add more public methods here
 private:
