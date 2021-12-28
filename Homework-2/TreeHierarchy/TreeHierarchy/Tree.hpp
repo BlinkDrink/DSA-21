@@ -22,17 +22,17 @@ public:
 
 	~Tree() { clear(root); }
 
-	Tree(const Tree& tree) : root(copy(tree.root)), fSize(tree.fSize) {};
+	Tree(const Tree& tree) : root(copy(tree.root)), fSize(tree.fSize) {}
 
 	Tree(Tree&& tree) noexcept : Tree()
 	{
 		std::swap(root, tree.root);
 		std::swap(fSize, tree.fSize);
-	};
+	}
 
 	Tree& operator=(const Tree& tree)
 	{
-		if (&tree != this)
+		if (this != &tree)
 		{
 			clear(root);
 			root = copy(tree.root);
@@ -194,18 +194,6 @@ private:
 			return false;
 		}
 
-		/// @brief Adds node <what> to the children of current node
-		/// @param what - node to be added
-		void addChild(Node* what)
-		{
-			Node* it = child;
-			while (it->brother)
-			{
-				it = it->brother;
-			}
-			it->brother = what;
-		}
-
 	} *root;
 
 	struct LessByName {
@@ -227,6 +215,8 @@ private:
 			clear(root->child);
 			clear(root->brother);
 			delete root;
+			root = nullptr;
+			fSize--;
 		}
 	}
 
@@ -591,43 +581,6 @@ private:
 		}
 
 		return getSalaryOf(root->child, who) + getSalaryOf(root->brother, who);
-	}
-
-	/// might remove
-	/// @brief Modernizes the give node
-	/// @param root - node to be modernized
-	void modernizeNode(Node*& root)
-	{
-		Node* toDelete = root;
-		Node* parentOfRoot = root->parent;
-
-		Node* it = root->child;
-		if (it)
-		{
-			it->parent = parentOfRoot;
-			while (it->brother)
-			{
-				it = it->brother;
-				it->parent = parentOfRoot;
-			}
-
-			if (parentOfRoot->child == toDelete)
-				it->brother = parentOfRoot->child->brother;
-			else
-				it->brother = parentOfRoot->child;
-
-			Node* itChild = parentOfRoot->child;
-			while (itChild->brother && itChild->brother->data != root->data)
-			{
-				itChild = itChild->brother;
-			}
-			itChild->brother = root->brother;
-
-			parentOfRoot->child = root->child;
-			delete root;
-			fSize--;
-			root = nullptr;
-		}
 	}
 
 	/// @brief Modernizes the tree - the nodes at every odd level(counting from root level 0)

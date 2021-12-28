@@ -13,13 +13,15 @@ using sh = StringHelper;
 class Hierarchy
 {
 public:
-	Hierarchy(Hierarchy&& r) noexcept : Hierarchy("")
+	Hierarchy(Hierarchy&& r) noexcept
 	{
+		fHierarchyName = std::move(r.fHierarchyName);
 		fTree = std::move(r.fTree);
 	}
 
 	Hierarchy(const Hierarchy& r)
 	{
+		fHierarchyName = r.fHierarchyName;
 		fTree = r.fTree;
 	}
 
@@ -57,7 +59,7 @@ public:
 		}
 	}
 
-	~Hierarchy() noexcept = default;
+	~Hierarchy() noexcept { fHierarchyName.clear(); }
 	void operator=(const Hierarchy&) = delete;
 
 	string print()const { return fTree.toString(); }
@@ -127,8 +129,10 @@ public:
 		return res;
 	}
 
-	//If you need it - add more public methods here
+	void setName(const string& name) { fHierarchyName = name; }
+
+	string getName() const { return fHierarchyName; }
 private:
-	//Add whatever you need here
+	string fHierarchyName;
 	Tree fTree;
 };

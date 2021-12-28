@@ -16,8 +16,8 @@ using std::vector;
 class CommandParser
 {
 private:
-	string raw;
-	vector<string> tokens;
+	string fRaw;
+	vector<string> fTokens;
 
 public:
 
@@ -27,30 +27,30 @@ public:
 	void setData(const string& data)
 	{
 		clearCmd();
-		raw = data;
+		fRaw = data;
 
 		tokenizeInnerString();
 
-		if (raw.size() == 0 || tokens.size() == 0 || tokens.size() > 3)
+		if (fRaw.size() == 0 || fTokens.size() == 0 || fTokens.size() > 4)
 			throw invalid_argument("Invalid command, check the number of arguments you've given");
 	}
 
 	/// @brief Splits raw into parts(tokens) and pushes them inside tokens private member.
 	void tokenizeInnerString()
 	{
-		tokens = sh::splitBy(raw, " ");
+		fTokens = sh::splitBy(fRaw, " ");
 	}
 
 	///	@brief Getter. Throws out_of_range if pos is invalid
 	///
 	///	@param pos - index to be accessed
-	///	@returns the element at index pos
+	///	@return the element at index pos
 	const string& atToken(size_t pos) const
 	{
-		if (pos >= tokens.size())
+		if (pos >= fTokens.size())
 			throw out_of_range("There are not enough arguments.");
 
-		return tokens[pos];
+		return fTokens[pos];
 	}
 
 	/// @brief Getter
@@ -58,20 +58,20 @@ public:
 	/// @returns size of tokens
 	size_t size() const
 	{
-		return tokens.size();
+		return fTokens.size();
 	}
 
 	/// @brief Getter
-	/// @returns returns raw string
+	/// @return raw string
 	string& getRaw()
 	{
-		return raw;
+		return fRaw;
 	}
 
 	///	@brief Clears raw, leaves it empty. Clears tokens, leaves it empty
 	CommandType getCommandType() const
 	{
-		string cmd = sh::toUpper(tokens[0]);
+		string cmd = sh::toUpper(fTokens[0]);
 
 		if (cmd == "HELP")
 		{
@@ -133,10 +133,14 @@ public:
 		return CommandType::EXIT;
 	}
 
-	/// @returns the type of the input command
+	/// @brief Getter
+	/// @return vector of commands
+	const vector<string>& getCommands() const { return fTokens; }
+
+	/// @return the type of the input command
 	void clearCmd()
 	{
-		raw.clear();
-		tokens.clear();
+		fRaw.clear();
+		fTokens.clear();
 	}
 };

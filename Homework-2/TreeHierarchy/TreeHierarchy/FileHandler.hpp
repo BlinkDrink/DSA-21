@@ -1,10 +1,18 @@
 #pragma once
 #include <fstream>
 #include <string>
+#include<climits>
 #include "StringHelper.hpp"
 #include "termcolor.hpp" // Open-source libarary used for output colorization of character
 #include "interface.hpp"
 #include "CommandParser.hpp"
+#ifdef _DEBUG
+#define DBG_NEW new ( _NORMAL_BLOCK , __FILE__ , __LINE__ )
+// Replace _NORMAL_BLOCK with _CLIENT_BLOCK if you want the
+// allocations to be of _CLIENT_BLOCK type
+#else
+#define DBG_NEW new
+#endif
 
 using std::fstream;
 using std::string;
@@ -12,23 +20,18 @@ using std::cout;
 using std::cin;
 using std::endl;
 using sh = StringHelper;
+using std::exception;
 using termcolor::red;
 using termcolor::reset;
 using termcolor::green;
 using termcolor::yellow;
-
-struct KeyValuePair
-{
-	string key;
-	Hierarchy value;
-};
 
 class FileHandler
 {
 private:
 	string fFilePath;
 	fstream fFile;
-	vector<KeyValuePair> fHierarchies;
+	vector<Hierarchy*> fHierarchies;
 
 	FileHandler() {}
 
@@ -36,7 +39,7 @@ private:
 	void menu() const
 	{
 		cout << "\t\t\tMENU" << endl;
-		cout << "help	- shows this list of commands" << endl;
+		cout << "help - shows this list of commands" << endl;
 		cout << "load <name_of_hierarchy> <name_of_file> - loads an object with name <name_of_hierarchy> from file <name_of_file>" << endl;
 		cout << "save <name_of_hierarchy> <name_of_file> - saves the current heirarchy in <name_of_file> file with <name_of_hierarchy> name. If no name of file is given - prints the result instead" << endl;
 		cout << "find <name_of_hierarchy> <name_of_employee> - checks if <name_of_employee> exists in <name_of_hierarchy>" << endl;
@@ -65,28 +68,79 @@ public:
 	FileHandler(FileHandler&& other) = delete;
 	FileHandler& operator=(FileHandler&& other) = delete;
 
-	/// @brief Attempts to open file with given path then populates table from the file
+	/// @brief Loads a hiearachy. Input can be done manually or from file, depending
+	/// on the number of arguments the user has given.
 	/// 
-	/// @param path - path to file
-	/// @returns true if the operation succeeded, false otherwise
-	void loadFromFile(const string& path, const string& hierarchy_name)
+	/// @param commands - vector of commands the user has given
+	void load(const vector<string>& commands)
 	{
-		string cpy(path), content, result;
+		if (commands.size() < 2 || commands.size() > 3)
+			throw invalid_argument("Invalid number of arguments for this command.");
 
-		fFile.open(cpy, std::ios_base::in);
-
-		if (!fFile.is_open())
+		if (commands.size() == 2)
 		{
-			throw invalid_argument("Couldn't open file for reading.");
-		}
+			string line, result;
+			while (!getline(cin, line).eof())
+				result += line + '\n';
+			cin.clear();
 
-		while (getline(fFile, content))
+			Hierarchy* res = DBG_NEW Hierarchy(result);
+			res->setName(commands.at(1));
+			fHierarchies.push_back(res);
+		}
+		else if (commands.size() == 3)
 		{
-			result += content + '\n';
-		}
+			fFile.open(commands.at(2), std::ios_base::in);
+			fFilePath = commands.at(2);
 
-		fHierarchies.push_back({ hierarchy_name, Hierarchy(result) });
-		return true;
+			if (!fFile.is_open())
+				throw invalid_argument("Couldn't open file for reading.");
+
+			string content, result;
+			while (getline(fFile, content))
+				result += content + '\n';
+
+			Hierarchy* res = DBG_NEW Hierarchy(result);
+			res->setName(commands.at(1));
+			fHierarchies.push_back(res);
+
+			fFile.close();
+		}
+	}
+
+	/// @brief Saves a heirarchy. Given 3 arguments - save <name_hierarchy> <name_file> saves the given hiearchy in desired file.
+	/// If the user hasn't given <name_file> then the information about the heirarchy is printed on the coonsole instead.
+	/// 
+	/// @param commands - vector of arguments the user has given
+	void save(const vector<string>& commands)
+	{
+		if (commands.size() < 2 || commands.size() > 3)
+			throw invalid_argument("Invalid number of arguments for this command.");
+
+		if (commands.size() == 2)
+		{
+			cout << getHierarchy(commands.at(1))->print() << endl;
+		}
+		else if (commands.size() == 3)
+		{
+			fFile.open(commands.at(2), std::ios_base::out);
+			fFilePath = commands.at(2);
+
+			if (!fFile.is_open())
+				throw invalid_argument("Couldn't open file for writing.");
+
+			fFile << getHierarchy(commands.at(1))->print();
+			fFile.close();
+		}
+	}
+
+	Hierarchy* getHierarchy(const string& name)
+	{
+		for (size_t i = 0; i < fHierarchies.size(); i++)
+			if (fHierarchies[i]->getName() == name)
+				return fHierarchies[i];
+
+		throw invalid_argument("Hierarchy with such name was not found.");
 	}
 
 	/**
@@ -155,19 +209,7 @@ public:
 			case CommandType::LOAD:
 				try
 				{
-					if (cp.size() == 2)
-					{
-						string hierarchy_name = cp.atToken(1);
-						string line, result;
-						while (!getline(cin, line).eof())
-							result += line + '\n';
-
-						fHierarchies.push_back({ hierarchy_name, Hierarchy(result) });
-					}
-					else if (cp.size() == 3)
-					{
-						loadFromFile(cp.atToken(2), cp.atToken(1));
-					}
+					load(cp.getCommands());
 				}
 				catch (const invalid_argument& e)
 				{
@@ -182,6 +224,145 @@ public:
 
 				cout << green << cp.atToken(1) << " loaded successfully!" << reset << endl;
 				break;
+			case CommandType::SAVE:
+				try
+				{
+					save(cp.getCommands());
+				}
+				catch (const exception& e)
+				{
+					cout << red << e.what() << reset << endl;
+					break;
+				}
+
+				cout << green << cp.atToken(1) << " saved." << reset << endl;
+				break;
+			case CommandType::FIND:
+				try
+				{
+					bool isFound = false;
+					isFound = getHierarchy(cp.atToken(1))->find(cp.atToken(2));
+					cout << yellow << cp.atToken(2) << (isFound ? " is" : " is not") << " employed in " << cp.atToken(1) << "." << reset << endl;
+				}
+				catch (const exception& e)
+				{
+					cout << red << e.what() << reset << endl;
+					break;
+				}
+
+				break;
+			case CommandType::NUM_SUBORDINATES:
+				try
+				{
+					int numSubordinates = getHierarchy(cp.atToken(1))->num_subordinates(cp.atToken(2));
+
+					if (numSubordinates == -1)
+						cout << red << "There is no employee with name " << cp.atToken(2) << " in " << cp.atToken(1) << reset << endl;
+					else
+						cout << yellow << cp.atToken(2) << " has " << numSubordinates << " subordinates." << reset << endl;
+				}
+				catch (const exception& e)
+				{
+					cout << red << e.what() << reset << endl;
+					break;
+				}
+
+				break;
+			case CommandType::MANAGER:
+				try
+				{
+					string managerName = getHierarchy(cp.atToken(1))->manager(cp.atToken(2));
+
+					if (managerName.empty())
+						cout << red << cp.atToken(2) << " has no manager." << reset << endl;
+					else
+						cout << yellow << "The manager of " << cp.atToken(2) << " is " << managerName << "." << reset << endl;
+				}
+				catch (const exception& e)
+				{
+					cout << red << e.what() << reset << endl;
+					break;
+				}
+
+				break;
+			case CommandType::NUM_EMPLOYEES:
+				try
+				{
+					int num_employees = getHierarchy(cp.atToken(1))->num_employees();
+
+					cout << yellow << "There are " << num_employees << " employees in " << cp.atToken(1) << "." << reset << endl;
+				}
+				catch (const exception& e)
+				{
+					cout << red << e.what() << reset << endl;
+					break;
+				}
+
+				break;
+			case CommandType::OVERLOADED:
+				try
+				{
+					int overloaded_employees = getHierarchy(cp.atToken(1))->num_overloaded();
+
+					cout << yellow << "There are " << overloaded_employees << " overloaded employees in " << cp.atToken(1) << "." << reset << endl;
+				}
+				catch (const exception& e)
+				{
+					cout << red << e.what() << reset << endl;
+					break;
+				}
+
+				break;
+			case CommandType::JOIN:
+				try
+				{
+					Hierarchy* h1 = getHierarchy(cp.atToken(1));
+					Hierarchy* h2 = getHierarchy(cp.atToken(2));
+					Hierarchy* joined = DBG_NEW Hierarchy(h1->join(*h2));
+					joined->setName(cp.atToken(3));
+					fHierarchies.push_back(joined);
+
+					cout << yellow << cp.atToken(3) << " created." << reset << endl;
+				}
+				catch (const exception& e)
+				{
+					cout << red << e.what() << reset << endl;
+					break;
+				}
+
+				break;
+			case CommandType::FIRE:
+				try
+				{
+					if (getHierarchy(cp.atToken(1))->fire(cp.atToken(2)))
+						cout << yellow << cp.atToken(2) << " was fired." << reset << endl;
+					else
+						cout << red << cp.atToken(2) << " was not found." << reset << endl;
+				}
+				catch (const exception& e)
+				{
+					cout << red << e.what() << reset << endl;
+					break;
+				}
+
+				break;
+			case CommandType::EXIT:
+				try
+				{
+
+				}
+				catch (const exception& e)
+				{
+					cout << red << e.what() << reset << endl;
+					break;
+				}
+
+				for (size_t i = 0; i < fHierarchies.size(); i++)
+					delete fHierarchies[i];
+
+				cout << termcolor::magenta << "Goodbye!" << reset << endl;
+
+				return;
 				/*case CommandType::CLOSE:
 					try
 					{
