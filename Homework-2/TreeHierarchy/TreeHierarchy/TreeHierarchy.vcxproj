@@ -143,6 +143,7 @@
     <ClInclude Include="CommandType.h" />
     <ClInclude Include="FileHandler.hpp" />
     <ClInclude Include="interface.hpp" />
+    <ClInclude Include="PriorityQueue.hpp" />
     <ClInclude Include="StringHelper.hpp" />
     <ClInclude Include="termcolor.hpp" />
     <ClInclude Include="Tree.hpp" />

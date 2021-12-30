@@ -132,7 +132,13 @@ public:
 	void setName(const string& name) { fHierarchyName = name; }
 
 	string getName() const { return fHierarchyName; }
+
+	void setSaved(bool isSaved) { fIsSaved = isSaved; }
+
+	bool getSaved() const { return fIsSaved; }
+
 private:
 	string fHierarchyName;
 	Tree fTree;
+	bool fIsSaved = false;
 };

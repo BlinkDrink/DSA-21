@@ -3,16 +3,9 @@
 #include <string>
 #include<climits>
 #include "StringHelper.hpp"
-#include "termcolor.hpp" // Open-source libarary used for output colorization of character
+#include "termcolor.hpp" // Open-source libarary used for output colorization of characters
 #include "interface.hpp"
 #include "CommandParser.hpp"
-#ifdef _DEBUG
-#define DBG_NEW new ( _NORMAL_BLOCK , __FILE__ , __LINE__ )
-// Replace _NORMAL_BLOCK with _CLIENT_BLOCK if you want the
-// allocations to be of _CLIENT_BLOCK type
-#else
-#define DBG_NEW new
-#endif
 
 using std::fstream;
 using std::string;
@@ -26,6 +19,7 @@ using termcolor::reset;
 using termcolor::green;
 using termcolor::yellow;
 
+/// @brief Singleton FileHandler, used for end-logic of the program
 class FileHandler
 {
 private:
@@ -38,22 +32,22 @@ private:
 	/// @brief Prints menu of commands on the console
 	void menu() const
 	{
-		cout << "\t\t\tMENU" << endl;
-		cout << "help - shows this list of commands" << endl;
-		cout << "load <name_of_hierarchy> <name_of_file> - loads an object with name <name_of_hierarchy> from file <name_of_file>" << endl;
-		cout << "save <name_of_hierarchy> <name_of_file> - saves the current heirarchy in <name_of_file> file with <name_of_hierarchy> name. If no name of file is given - prints the result instead" << endl;
-		cout << "find <name_of_hierarchy> <name_of_employee> - checks if <name_of_employee> exists in <name_of_hierarchy>" << endl;
-		cout << "num_subordinates <name_of_hierarchy> <name_of_employee> - shows how many subordinates <name_of_employee> has in <name_of_hierarchy>" << endl;
-		cout << "manager <name_of_hierarchy> <name_of_employee> - shows the manager of <name_of_employee> in <name_of_hierarchy>" << endl;
-		cout << "num_employees <name_of_hierarchy> - shows how many employees work in <name_of_hierarchy>" << endl;
-		cout << "overloaded <name_of_hierarchy> - shows how many employees have more than 20 employees working under them in <name_of_hierarchy>" << endl;
-		cout << "join <name_of_hierarchy_1> <name_of_hierarchy_2> <name_of_hierarchy_result> - unites 2 hierarchies into one under the name of <name_of_hierarchy_result" << endl;
-		cout << "fire <name_of_hierarchy> <name_of_employee> - fires the employee with name <name_of_employee> from <name_of_hierarchy>" << endl;
-		cout << "hire <name_of_hierarchy> <name_of_employee> <name_of_boss> - hires <name_of_employee> under <name_of_boss> in <name_of_hierarchy>" << endl;
-		cout << "salary <name_of_hierarchy> <name_of_employee> - shows the salary of <name_of_employee> in <name_of_hierarchy>" << endl;
-		cout << "incorporate <name_of_hierarchy> - incorporates the branch; this operation is applied on <name_of_hierarchy>" << endl;
-		cout << "modernize <name_of_hierarchy> - modernizes the branch; this operation is applied on <name_of_hierarchy>" << endl;
-		cout << "exit - exits the program" << endl;
+		cout << yellow << "\t\t\tMENU" << endl;
+		cout << "help\t\t\t\t\t\t\t\t\t\t - shows this list of commands" << endl;
+		cout << "load <name_of_hierarchy> <name_of_file>\t\t\t\t\t\t - loads an object with name <name_of_hierarchy> from file <name_of_file>" << endl;
+		cout << "save <name_of_hierarchy> <name_of_file>\t\t\t\t\t\t - saves the current heirarchy in <name_of_file> file with <name_of_hierarchy> name. If no name of file is given - prints the result instead" << endl;
+		cout << "find <name_of_hierarchy> <name_of_employee>\t\t\t\t\t - checks if <name_of_employee> exists in <name_of_hierarchy>" << endl;
+		cout << "num_subordinates <name_of_hierarchy> <name_of_employee>\t\t\t\t - shows how many subordinates <name_of_employee> has in <name_of_hierarchy>" << endl;
+		cout << "manager <name_of_hierarchy> <name_of_employee>\t\t\t\t\t - shows the manager of <name_of_employee> in <name_of_hierarchy>" << endl;
+		cout << "num_employees <name_of_hierarchy>\t\t\t\t\t\t - shows how many employees work in <name_of_hierarchy>" << endl;
+		cout << "overloaded <name_of_hierarchy>\t\t\t\t\t\t\t - shows how many employees have more than 20 employees working under them in <name_of_hierarchy>" << endl;
+		cout << "join <name_of_hierarchy_1> <name_of_hierarchy_2> <name_of_hierarchy_result>\t - unites 2 hierarchies into one under the name of <name_of_hierarchy_result" << endl;
+		cout << "fire <name_of_hierarchy> <name_of_employee>\t\t\t\t\t - fires the employee with name <name_of_employee> from <name_of_hierarchy>" << endl;
+		cout << "hire <name_of_hierarchy> <name_of_employee> <name_of_boss>\t\t\t - hires <name_of_employee> under <name_of_boss> in <name_of_hierarchy>" << endl;
+		cout << "salary <name_of_hierarchy> <name_of_employee>\t\t\t\t\t - shows the salary of <name_of_employee> in <name_of_hierarchy>" << endl;
+		cout << "incorporate <name_of_hierarchy>\t\t\t\t\t\t\t - incorporates the branch; this operation is applied on <name_of_hierarchy>" << endl;
+		cout << "modernize <name_of_hierarchy>\t\t\t\t\t\t\t - modernizes the branch; this operation is applied on <name_of_hierarchy>" << endl;
+		cout << "exit\t\t\t\t\t\t\t\t\t\t - exits the program" << reset << endl;
 	}
 
 public:
@@ -84,7 +78,7 @@ public:
 				result += line + '\n';
 			cin.clear();
 
-			Hierarchy* res = DBG_NEW Hierarchy(result);
+			Hierarchy* res = new Hierarchy(result);
 			res->setName(commands.at(1));
 			fHierarchies.push_back(res);
 		}
@@ -100,7 +94,7 @@ public:
 			while (getline(fFile, content))
 				result += content + '\n';
 
-			Hierarchy* res = DBG_NEW Hierarchy(result);
+			Hierarchy* res = new Hierarchy(result);
 			res->setName(commands.at(1));
 			fHierarchies.push_back(res);
 
@@ -119,7 +113,7 @@ public:
 
 		if (commands.size() == 2)
 		{
-			cout << getHierarchy(commands.at(1))->print() << endl;
+			cout << getHierarchy(commands.at(1))->print();
 		}
 		else if (commands.size() == 3)
 		{
@@ -129,11 +123,16 @@ public:
 			if (!fFile.is_open())
 				throw invalid_argument("Couldn't open file for writing.");
 
-			fFile << getHierarchy(commands.at(1))->print();
+			Hierarchy* tmp = getHierarchy(commands.at(1));
+			fFile << tmp->print();
+			tmp->setSaved(true);
 			fFile.close();
 		}
 	}
 
+	/// @brief Finds the hierarchy with the given name
+	/// @param name - name of hierarchy
+	/// @return pointer to the desired hierarchy
 	Hierarchy* getHierarchy(const string& name)
 	{
 		for (size_t i = 0; i < fHierarchies.size(); i++)
@@ -143,41 +142,25 @@ public:
 		throw invalid_argument("Hierarchy with such name was not found.");
 	}
 
-	/**
-	* 	@brief Attempts to close the opened file. If session hasn't been saved then it prompts the user for confirmation
-	*	to either save/don't save/cancel. Clears in memory table.
-	*
-	*	@returns true if the operation succeeded, false if operation has been canceled
-	*/
-	//bool closeFile();
+	/// @brief Clears the dynamically allcated hieararchies
+	void clearHierarchies()
+	{
+		for (size_t i = 0; i < fHierarchies.size(); i++)
+			delete fHierarchies[i];
+	}
 
-	/**
-	* 	@brief Attempts to save the current table into the same file opened by openFile()
-	*/
-	//void saveToFile();
-
-	/**
-	*	@brief Saves the current session into file with given path
-	*
-	*	@param path - path to the new file
-	*/
-	//void saveFileAs(const string& path);
-
-	/**
-	 *	@brief Creates new document(in memory) which is empty. If wished to be saved it should be called with "saveas"
-	 *
-	 *	@returns true if the operation succeeded in creating new document, false if it didn't
-	*/
-	//bool createNewDocument();
-
-	/**
-	*	@brief Edits a cell at the given row and column with given content.
-	*
-	*	@param row	   - row of table
-	*	@param col	   - column of table
-	*	@param content - content with which it will be edited
-	*/
-	//void editFile(size_t row, size_t col, const string& content);
+	/// @brief Finds all hierarchies that haven't been saved yet
+	/// @return vector of all unsaved hierarchies
+	vector<Hierarchy*> getUnsavedHierarchies()
+	{
+		vector<Hierarchy*> res;
+		for (size_t i = 0; i < fHierarchies.size(); i++)
+		{
+			if (!fHierarchies[i]->getSaved())
+				res.push_back(fHierarchies[i]);
+		}
+		return res;
+	}
 
 	// @brief Executes the main logic of the program
 	void exe()
@@ -318,7 +301,7 @@ public:
 				{
 					Hierarchy* h1 = getHierarchy(cp.atToken(1));
 					Hierarchy* h2 = getHierarchy(cp.atToken(2));
-					Hierarchy* joined = DBG_NEW Hierarchy(h1->join(*h2));
+					Hierarchy* joined = new Hierarchy(h1->join(*h2));
 					joined->setName(cp.atToken(3));
 					fHierarchies.push_back(joined);
 
@@ -334,10 +317,83 @@ public:
 			case CommandType::FIRE:
 				try
 				{
-					if (getHierarchy(cp.atToken(1))->fire(cp.atToken(2)))
+					Hierarchy* tmp = getHierarchy(cp.atToken(1));
+					if (tmp->fire(cp.atToken(2)))
+					{
 						cout << yellow << cp.atToken(2) << " was fired." << reset << endl;
+						tmp->setSaved(false);
+					}
+					else
+					{
+						cout << red << cp.atToken(2) << " was not found." << reset << endl;
+					}
+				}
+				catch (const exception& e)
+				{
+					cout << red << e.what() << reset << endl;
+					break;
+				}
+
+				break;
+			case CommandType::HIRE:
+				try
+				{
+					Hierarchy* tmp = getHierarchy(cp.atToken(1));
+					if (tmp->hire(cp.atToken(2), cp.atToken(3)))
+					{
+						cout << yellow << cp.atToken(2) << " was hired." << reset << endl;
+						tmp->setSaved(false);
+					}
+					else
+					{
+						cout << red << cp.atToken(2) << " was not found." << reset << endl;
+					}
+				}
+				catch (const exception& e)
+				{
+					cout << red << e.what() << reset << endl;
+					break;
+				}
+
+				break;
+			case CommandType::SALARY:
+				try
+				{
+					int salary = getHierarchy(cp.atToken(1))->getSalary(cp.atToken(2));
+					if (salary != -1)
+						cout << yellow << "The salary is " << salary << " BGN." << reset << endl;
 					else
 						cout << red << cp.atToken(2) << " was not found." << reset << endl;
+				}
+				catch (const exception& e)
+				{
+					cout << red << e.what() << reset << endl;
+					break;
+				}
+
+				break;
+			case CommandType::INCORPORATE:
+				try
+				{
+					Hierarchy* tmp = getHierarchy(cp.atToken(1));
+					tmp->incorporate();
+					tmp->setSaved(false);
+					cout << green << cp.atToken(1) << " incorporated." << reset << endl;
+				}
+				catch (const exception& e)
+				{
+					cout << red << e.what() << reset << endl;
+					break;
+				}
+
+				break;
+			case CommandType::MODERNIZE:
+				try
+				{
+					Hierarchy* tmp = getHierarchy(cp.atToken(1));
+					tmp->modernize();
+					tmp->setSaved(false);
+					cout << green << cp.atToken(1) << " modernized." << reset << endl;
 				}
 				catch (const exception& e)
 				{
@@ -349,7 +405,16 @@ public:
 			case CommandType::EXIT:
 				try
 				{
+					vector<Hierarchy*> unsavedHierarchies = getUnsavedHierarchies();
+					for (size_t i = 0; i < unsavedHierarchies.size(); i++)
+					{
+						string fileName;
+						cout << yellow << unsavedHierarchies[i]->getName() << " is modified, but not saved." << reset << endl;
+						cout << yellow << "Enter file name to save it: " << reset << endl;
+						cin >> fileName;
 
+						save({ "save", unsavedHierarchies[i]->getName(), fileName });
+					}
 				}
 				catch (const exception& e)
 				{
@@ -357,125 +422,9 @@ public:
 					break;
 				}
 
-				for (size_t i = 0; i < fHierarchies.size(); i++)
-					delete fHierarchies[i];
-
-				cout << termcolor::magenta << "Goodbye!" << reset << endl;
-
+				clearHierarchies();
+				cout << green << "Goodbye!" << reset << endl;
 				return;
-				/*case CommandType::CLOSE:
-					try
-					{
-						if (!closeFile())
-							break;
-					}
-					catch (const exception& e)
-					{
-						cout << red << e.what() << reset << endl;
-						break;
-					}
-
-					cout << green << "Successfully closed file." << reset << endl;
-					break;
-				case CommandType::NEW:
-					try
-					{
-						if (!createNewDocument())
-							break;
-					}
-					catch (const exception& e)
-					{
-						cout << red << e.what() << reset << endl;
-						break;
-					}
-
-					cout << green << "Succesfully created new document" << reset << endl;
-					break;
-				case CommandType::SAVE:
-					try
-					{
-						saveToFile();
-					}
-					catch (const exception& e)
-					{
-						cout << red << e.what() << reset << endl;
-						break;
-					}
-
-					cout << green << "Successfully saved file into " << m_filePath << reset << endl;
-					break;
-				case CommandType::SAVEAS:
-					try
-					{
-						saveFileAs(cp.atToken(1));
-					}
-					catch (const exception& e)
-					{
-						cout << red << e.what() << reset << endl;
-						break;
-					}
-
-					cout << green << "Successfully saved table to " << m_filePath << reset << endl;
-					break;
-				case CommandType::EDIT:
-					try
-					{
-						if (!sh::isStringValidCellAddress(cp.atToken(1)))
-						{
-							cout << red << "Invalid formula address" << reset << endl;
-							break;
-						}
-
-						Pair pair = sh::extractCellAddressDetails(cp.atToken(1));
-						editFile(pair.key, pair.value, cp.atToken(2));
-					}
-					catch (const invalid_argument& e)
-					{
-						cout << red << e.what() << reset << endl;
-						break;
-					}
-					catch (const exception& e)
-					{
-						cout << red << e.what() << reset << endl;
-						break;
-					}
-
-					cout << green << "Successfully set cell " << cp.atToken(1) << ", with content " << cp.atToken(2) << reset << endl;
-					break;
-				case CommandType::PRINT:
-					try
-					{
-						m_table.print();
-					}
-					catch (const std::exception& e)
-					{
-						cout << red << e.what() << reset << endl;
-						break;
-					}
-
-					break;
-				case CommandType::EXIT:
-					try
-					{
-						if (!m_isClosed)
-						{
-							if (!closeFile())
-								break;
-						}
-					}
-					catch (const exception& e)
-					{
-						cout << red << e.what() << reset << endl;
-						break;
-					}
-
-					cout << termcolor::magenta << "Exiting the program..." << reset << endl;
-					return;
-				case CommandType::NOCOMMAND:
-					cout << red << "Invalid command." << reset << endl;
-					break;
-				default:
-					break;*/
 			}
 		}
 	}

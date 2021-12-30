@@ -3,6 +3,7 @@
 #include<list>
 #include<queue>
 #include<string>
+#include"PriorityQueue.hpp"
 
 using std::string;
 using std::list;
@@ -17,8 +18,6 @@ public:
 	/// @brief Object lifetime
 
 	Tree() : root(nullptr), fSize(0) {}
-
-	Tree(const string& top) : root(new Node(top)), fSize(1) {}
 
 	~Tree() { clear(root); }
 
@@ -70,8 +69,7 @@ public:
 	/// @brief Wrapper of inner method getNumberOfChildrenOf
 	/// @param key - the key of the node for which we will determine the number of children
 	/// @return the number of children
-	int getNumberOfChildrenOf(const string& key) const
-	{
+	int getNumberOfChildrenOf(const string& key) const {
 		return getNumberOfChildrenOf(root, key);
 	}
 
@@ -135,12 +133,10 @@ public:
 			}
 			else
 			{
-				priority_queue<Node*, vector<Node*>, LessByName> pq;
+				PriorityQueue<Node*, LessByName> pq;
 
 				for (Node* it = current->child; it; it = it->brother)
-				{
 					pq.push(it);
-				}
 
 				while (!pq.empty())
 				{
@@ -308,7 +304,6 @@ private:
 					}
 				}
 
-				/// Once <who> has been assigned under <boss> we need to rearrange the old relations of <who>
 				Node* parentOfWho = whoNode->parent;
 				whoNode->parent = root;
 
@@ -647,7 +642,7 @@ private:
 			if (itBrother->data != root->data)
 			{
 				itBrother = it->brother;
-				insert(this->root, it->data, root->data);
+				insert(it->data, root->data);
 			}
 			else
 			{
@@ -676,11 +671,11 @@ private:
 			incorporateNode(nodeToInc);
 	}
 
-	/// @brief Creates list of nodes of current tree in breath-first traversal order
-	/// @return the list of nodes in b-f traversal order
-	list<Node*> bfs() const
+	/// @brief Creates vector of nodes of current tree in breath-first traversal order
+	/// @return the vector of nodes in b-f traversal order
+	vector<Node*> bfs() const
 	{
-		list<Node*> res;
+		vector<Node*> res;
 		queue<Node*> front;
 		front.push(root);
 
