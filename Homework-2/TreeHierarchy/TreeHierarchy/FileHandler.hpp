@@ -302,6 +302,14 @@ public:
 					Hierarchy* h1 = getHierarchy(cp.atToken(1));
 					Hierarchy* h2 = getHierarchy(cp.atToken(2));
 					Hierarchy* joined = new Hierarchy(h1->join(*h2));
+
+					if (joined->print() == "")
+					{
+						delete joined;
+						cout << red << "Couldn't join " << h1->getName() << " and " << h2->getName() << reset << endl;
+						break;
+					}
+
 					joined->setName(cp.atToken(3));
 					fHierarchies.push_back(joined);
 

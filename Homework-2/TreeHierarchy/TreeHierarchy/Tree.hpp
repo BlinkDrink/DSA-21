@@ -105,8 +105,6 @@ public:
 	/// @return true if tree is empty, false otherwise 
 	bool empty() const { return fSize == 0; }
 
-	//void printByLevels() const { printByLevels(root); }
-
 	/// @brief toString() method of tree
 	/// @param root - the beginning of the tree
 	/// @return Stringified tree
@@ -192,8 +190,9 @@ private:
 
 	} *root;
 
+	/// @brief Used in priority queue comparator
 	struct LessByName {
-		bool operator()(Tree::Node* a, Tree::Node* b)
+		bool operator()(Node* a, Node* b)
 		{
 			return a->data > b->data;
 		}
@@ -240,7 +239,8 @@ private:
 		return depthOf(root->child, key, level + 1) + depthOf(root->brother, key, level);
 	}
 
-	/// @brief Inserts element <who> underneath <boss>
+	/// @brief Inserts element <who> underneath <boss>, if both elements exist, then 
+	/// relations are rearranged
 	/// @param root - the begining of the tree
 	/// @param who - the employee to be added underneath <boss>
 	/// @param boss - the boss of <who>
@@ -422,16 +422,6 @@ private:
 	/// @return true if the operation succeeded, false otherwise
 	string findParentKeyOf(Node* root, const string& key) const
 	{
-		//if (!root)
-		//	return false;
-
-		//if (root->data == key) {
-		//	res = root->parent ? root->parent->data : "";
-		//	return true;
-		//}
-
-		//return findParentKeyOf(root->brother, key, res) || findParentKeyOf(root->child, key, res);
-
 		if (!root)
 			return "";
 
@@ -460,23 +450,6 @@ private:
 			return root;
 
 		Node* tmp = findNodeByKey(root->brother, key);
-		if (tmp)
-			return tmp;
-
-		tmp = findNodeByKey(root->child, key);
-		return tmp;
-	}
-
-	/// @brief Const version of findNodeByKey
-	const Node* findNodeByKey(const Node* root, const string& key) const
-	{
-		if (!root)
-			return nullptr;
-
-		if (root->data == key)
-			return root;
-
-		const Node* tmp = findNodeByKey(root->brother, key);
 		if (tmp)
 			return tmp;
 
@@ -672,7 +645,7 @@ private:
 	}
 
 	/// @brief Creates vector of nodes of current tree in breath-first traversal order
-	/// @return the vector of nodes in b-f traversal order
+	/// @return the vector of nodes in breath-first traversal order
 	vector<Node*> bfs() const
 	{
 		vector<Node*> res;
@@ -704,7 +677,7 @@ private:
 	/// @return Merged tree created from left + right
 	Tree join(const Tree& left, const Tree& right) const
 	{
-		Tree leftCpy(left);
+		Tree res(left);
 
 		for (Node* it : right.bfs())
 		{
@@ -712,34 +685,55 @@ private:
 				continue;
 
 			/// Parent of it in left tree( it is in right tree)
-			Node* found = leftCpy.findNodeByKey(leftCpy.root, it->parent->data);
+			Node* found = res.findNodeByKey(res.root, it->parent->data);
+			Node* itInLeft = res.findNodeByKey(res.root, it->data);
+
+			/// Check if element in right tree contains its parent in the left tree in its children
+			if (!isValidJoin(itInLeft, it))
+				return Tree();
+
 			if (!found->contains(it->data)) /// Is it contained in its parent in left tree
 			{
-				if (!leftCpy.find(it->data)) /// Is it contained somewhere in left tree
+				if (!res.find(it->data)) /// Is it contained somewhere in left tree
 				{
-					leftCpy.insert(it->data, found->data); // if not contained then just add it underneath its parent
+					res.insert(it->data, found->data); // if not contained then just add it underneath its parent
 				}
 				else
 				{
-					string itParentKey = leftCpy.findParentKeyOf(it->data);
-					int depthFound = leftCpy.depthOf(leftCpy.root, found->data);
-					int depthItParent = leftCpy.depthOf(leftCpy.root, itParentKey);
+					string itParentKey = res.findParentKeyOf(it->data);
+					int depthFound = res.depthOf(res.root, found->data);
+					int depthItParent = res.depthOf(res.root, itParentKey);
 					if (depthFound < depthItParent)
 					{
-						leftCpy.insert(it->data, found->data); /// If depth of found is lower than the parent of the existing element in left
+						res.insert(it->data, found->data); /// If depth of found is lower than the parent of the existing element in left
 															   /// then add it underneath found
 					}
 					else if (depthFound == depthItParent) /// if depths are equal, check their names lexicographically
 					{
 						if (found->data < itParentKey)
 						{
-							leftCpy.insert(it->data, found->data);
+							res.insert(it->data, found->data);
 						}
 					}
 				}
 			}
 		}
 
-		return leftCpy;
+		return res;
+	}
+
+	/// @brief Search for <toSearchFor> in <inSubTree> sub-tree
+	/// @param toSearchFor - element to search for
+	/// @param inSubTree - root of subtree
+	/// @return true if valid, false if invalid
+	bool isValidJoin(Node* toSearchFor, Node* inSubTree) const
+	{
+		if (!toSearchFor)
+			return true;
+
+		if (find(inSubTree, toSearchFor->data))
+			return false;
+
+		return isValidJoin(toSearchFor->parent, inSubTree);
 	}
 };

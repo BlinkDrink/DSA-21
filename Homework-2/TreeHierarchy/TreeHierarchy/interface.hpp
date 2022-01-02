@@ -16,12 +16,14 @@ public:
 	Hierarchy(Hierarchy&& r) noexcept
 	{
 		fHierarchyName = std::move(r.fHierarchyName);
+		fIsSaved = std::move(r.fIsSaved);
 		fTree = std::move(r.fTree);
 	}
 
 	Hierarchy(const Hierarchy& r)
 	{
 		fHierarchyName = r.fHierarchyName;
+		fIsSaved = r.fIsSaved;
 		fTree = r.fTree;
 	}
 

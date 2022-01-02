@@ -68,7 +68,7 @@ public:
 		return fRaw;
 	}
 
-	///	@brief Clears raw, leaves it empty. Clears tokens, leaves it empty
+	/// @return the type of the input command
 	CommandType getCommandType() const
 	{
 		string cmd = sh::toUpper(fTokens[0]);
@@ -137,7 +137,7 @@ public:
 	/// @return vector of commands
 	const vector<string>& getCommands() const { return fTokens; }
 
-	/// @return the type of the input command
+	///	@brief Clears raw, leaves it empty. Clears tokens, leaves it empty
 	void clearCmd()
 	{
 		fRaw.clear();
