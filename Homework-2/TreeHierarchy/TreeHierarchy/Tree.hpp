@@ -689,7 +689,7 @@ private:
 			Node* itInLeft = res.findNodeByKey(res.root, it->data);
 
 			/// Check if element in right tree contains its parent in the left tree in its children
-			if (!isValidJoin(itInLeft, it))
+			if (itInLeft && !isValidJoin(itInLeft->parent, it))
 				return Tree();
 
 			if (!found->contains(it->data)) /// Is it contained in its parent in left tree
