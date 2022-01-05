@@ -110,6 +110,7 @@ public:
 		vector<forward_list<Data>> newArr(bucketsCount);
 		std::swap(fArr, newArr);
 		fUniqueWordsCount = 0;
+		fSize = 0;
 
 		for (const std::forward_list< Data >& list : newArr)
 			for (const Data& elem : list)
@@ -118,10 +119,7 @@ public:
 
 private:
 	/// @brief Private methods
-	size_t hash(const string& key) const
-	{
-		return std::hash<string>{}(key) % this->bucket_count();
-	}
+	size_t hash(const string& key) const { return std::hash<string>{}(key) % this->bucket_count(); }
 
 	const Data* find(const string& word) const
 	{
