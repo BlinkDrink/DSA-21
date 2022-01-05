@@ -23,10 +23,13 @@ public:
 	/// while add("abc", 4) adds 4 occurrances.
 	void add(const std::string& word, size_t times = 1)
 	{
-		if (this->contains(word))
+		if (this->contains(word)) {
 			find(word)->fValue += times;
-		else
+			fSize += times;
+		}
+		else {
 			this->insert({ word, times });
+		}
 	}
 
 	/// Checks whether word is contained in the container
@@ -48,7 +51,7 @@ public:
 	/// Number of unique words in the container
 	size_t countOfUniqueWords() const
 	{
-		return fSize;
+		return fUniqueWordsCount;
 	}
 
 	/// Returns a multiset of all words in the container
@@ -64,7 +67,6 @@ public:
 		return res;
 	}
 
-	// You can add additional members if you need to
 public:
 	struct Data
 	{
@@ -74,6 +76,7 @@ public:
 
 	HashMap()
 		: fArr(DEFAULT_BUCKET_COUNT)
+		, fUniqueWordsCount(0)
 		, fSize(0)
 		, fMaxLoadFactor(DEFAULT_MAX_LOAD_FACTOR)
 	{}
@@ -84,14 +87,15 @@ public:
 
 	size_t bucket_count() const { return fArr.size(); }
 
-	vector<string> getUnqiueWords() const
+	void decrementValueAtKey(const string& key, int how_much)
 	{
-		vector<string> res;
-		for (const forward_list<Data>& l : fArr)
-			for (const Data& elem : l)
-				res.push_back(elem.fKey);
+		if (contains(key)) {
+			find(key)->fValue -= how_much;
+			fSize -= how_much;
+		}
 
-		return res;
+		if (countOf(key) == 0)
+			fUniqueWordsCount--;
 	}
 
 	void rehash(size_t bucketsCount)
@@ -105,7 +109,7 @@ public:
 
 		vector<forward_list<Data>> newArr(bucketsCount);
 		std::swap(fArr, newArr);
-		fSize = 0;
+		fUniqueWordsCount = 0;
 
 		for (const std::forward_list< Data >& list : newArr)
 			for (const Data& elem : list)
@@ -135,7 +139,7 @@ private:
 		return const_cast<Data*>(std::as_const(*this).find(word));
 	}
 
-	void insert(const Data& pair)
+	Data* insert(const Data& pair)
 	{
 		size_t index = this->hash(pair.fKey);
 
@@ -144,12 +148,15 @@ private:
 
 		fArr[index].push_front(pair);
 
+		++fUniqueWordsCount;
 		++fSize;
+		return &fArr[index].front();
 	}
 
 private:
 	/// @brief Private data members
 	vector<forward_list<Data>> fArr;
+	size_t fUniqueWordsCount;
 	size_t fSize;
 	float fMaxLoadFactor;
 };
