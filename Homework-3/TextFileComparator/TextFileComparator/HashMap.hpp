@@ -23,13 +23,7 @@ public:
 	/// while add("abc", 4) adds 4 occurrances.
 	void add(const std::string& word, size_t times = 1)
 	{
-		if (this->contains(word)) {
-			find(word)->fValue += times;
-			fSize += times;
-		}
-		else {
-			this->insert({ word, times });
-		}
+		this->insert({ word, times });
 	}
 
 	/// Checks whether word is contained in the container
@@ -141,13 +135,19 @@ private:
 	{
 		size_t index = this->hash(pair.fKey);
 
-		if ((float)(this->size() + 1) / this->bucket_count() > this->max_load_factor())
+		if ((float)(this->size() + pair.fValue) / this->bucket_count() > this->max_load_factor())
 			this->rehash(this->bucket_count() * 2);
 
-		fArr[index].push_front(pair);
+		if (this->contains(pair.fKey))
+		{
+			find(pair.fKey)->fValue += pair.fValue;
+		}
+		else {
+			fArr[index].push_front(pair);
+			++fUniqueWordsCount;
+		}
 
-		++fUniqueWordsCount;
-		++fSize;
+		fSize += pair.fValue;
 		return &fArr[index].front();
 	}
 

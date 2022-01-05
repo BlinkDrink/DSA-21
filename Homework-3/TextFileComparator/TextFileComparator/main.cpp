@@ -26,10 +26,10 @@ int main(int argc, char* argv[])
 	double file2WordsInFile1Percentage = ((double)commonWordsCount / (file2Words + commonWordsCount)) * 100;
 
 	cout << "file1 contains " << file1Words + commonWordsCount
-		<< " words and " << commonWordsCount << " are contained in file2." << "(" << file1WordsInFile2Percentage << "%)" << "\n";
+		<< " words and " << commonWordsCount << " are contained in file2" << "(" << file1WordsInFile2Percentage << "%)" << "\n";
 
 	cout << "file2 contains " << file2Words + commonWordsCount
-		<< " words and " << commonWordsCount << " are contained in file1." << "(" << file2WordsInFile1Percentage << "%)" << "\n";
+		<< " words and " << commonWordsCount << " are contained in file1" << "(" << file2WordsInFile1Percentage << "%)" << "\n";
 
 	return 0;
 }
