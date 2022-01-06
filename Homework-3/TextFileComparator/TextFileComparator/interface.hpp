@@ -1,3 +1,4 @@
+#pragma once
 #include "HashMap.hpp"
 
 ///
@@ -31,6 +32,9 @@ public:
 	/// Returns a multiset of all words in the container
 	std::multiset<std::string> words() const { return map.words(); }
 
+	/// @brief Decrements the value corresponding to the given key <how_much> times
+	/// @param key - key of element
+	/// @param how_much - how much to decrement with
 	void decrementValueAtKey(const string& key, size_t how_much) { map.decrementValueAtKey(key, how_much); }
 
 private:
@@ -65,14 +69,8 @@ public:
 		using streamiter = std::istream_iterator<std::string>;
 
 		for (streamiter it = streamiter(a); it != streamiter(); it++)
-		{
 			res.uniqueWords[0].add(*it);
-		}
 
-		/// two one four one one  
-		///	commonWords 			   -> two					 -> two one            -> two one four  -> two one four one
-		/// one two three four two one -> one three four two one -> three four two one -> three two one -> three two
-		///	unique[1]				   -> 					     ->                    ->               ->                  -> one
 		for (streamiter it = streamiter(b); it != streamiter(); it++)
 		{
 			if (res.uniqueWords[0].countOf(*it))

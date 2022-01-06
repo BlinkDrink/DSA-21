@@ -20,14 +20,14 @@ public:
 	/// Adds times occurences of word to the container
 	///
 	/// For example, add("abc") adds the word "abc" once,
-	/// while add("abc", 4) adds 4 occurrances.
-	void add(const std::string& word, size_t times = 1)
+	/// while add("abc", 4) adds 4 occurrences.
+	void add(const string& word, size_t times = 1)
 	{
 		this->insert({ word, times });
 	}
 
 	/// Checks whether word is contained in the container
-	bool contains(const std::string& word) const
+	bool contains(const string& word) const
 	{
 		if (this->find(word))
 			return true;
@@ -36,7 +36,7 @@ public:
 	}
 
 	/// Number of occurrances of word 
-	size_t countOf(const std::string& word) const
+	size_t countOf(const string& word) const
 	{
 		const Data* res = find(word);
 		return res ? res->fValue : 0;
@@ -62,6 +62,7 @@ public:
 	}
 
 public:
+	/// @brief Descriptor of hash-table element
 	struct Data
 	{
 		string fKey;
@@ -75,12 +76,21 @@ public:
 		, fMaxLoadFactor(DEFAULT_MAX_LOAD_FACTOR)
 	{}
 
+	/// @brief Getter
+	/// @return max load factor of the hash-table
 	float max_load_factor() const { return fMaxLoadFactor; }
 
+	/// @brief Getter
+	/// @return number of elements in the hash-table
 	size_t size() const { return fSize; }
 
+	/// @brief Getter
+	/// @return the number of separate chains(number forward_lists in the vector)
 	size_t bucket_count() const { return fArr.size(); }
 
+	/// @brief Decrements the value at key with <how_much>
+	/// @param key - key of element
+	/// @param how_much - how many times to decrement
 	void decrementValueAtKey(const string& key, int how_much)
 	{
 		if (contains(key)) {
@@ -92,6 +102,8 @@ public:
 			fUniqueWordsCount--;
 	}
 
+	/// @brief Rehashing function, used to resize the inner vector of forward_lists
+	/// @param bucketsCount - the number of buckets to the hash-table will be resized
 	void rehash(size_t bucketsCount)
 	{
 		size_t minBuckets = std::ceil(this->size() / this->max_load_factor());
@@ -113,24 +125,35 @@ public:
 
 private:
 	/// @brief Private methods
+
+	/// @brief Hashing function, using std::hash and % size to find the bucket of each element
+	/// @param key - string which will be hashed
+	/// @return the hashed index
 	size_t hash(const string& key) const { return std::hash<string>{}(key) % this->bucket_count(); }
 
-	const Data* find(const string& word) const
+	/// @brief Finds the element with given key
+	/// @param key - key of element
+	/// @return the element if found, nullptr otherwise
+	const Data* find(const string& key) const
 	{
-		size_t index = this->hash(word);
+		size_t index = this->hash(key);
 
 		for (const Data& elem : fArr[index])
-			if (elem.fKey == word)
+			if (elem.fKey == key)
 				return &elem;
 
 		return nullptr;
 	}
 
-	Data* find(const string& word)
-	{
-		return const_cast<Data*>(std::as_const(*this).find(word));
-	}
+	/// @brief Non const version of method find()
+	/// @param key - key of element
+	/// @return the element if found, nullptr otherwise
+	Data* find(const string& key) { return const_cast<Data*>(std::as_const(*this).find(key)); }
 
+	/// @brief Inserts Key-Value pair in the hash-table, resizes hash if max load factor is exceeded
+	/// If pair is existing in the hash-table then simply increment its value by pair.fValue amount
+	/// @param pair - Key-Value pair
+	/// @return the added element by &
 	Data* insert(const Data& pair)
 	{
 		size_t index = this->hash(pair.fKey);

@@ -118,8 +118,8 @@ TEST_CASE("Comparator works correctly for empty streams")
 
 TEST_CASE("Comparator works correctly for the streams [one two three four two one] and [two one four one one]")
 {
-	std::stringstream a("one two three four two one"); /// one three four two one -> three four two one -> three two one -> three two
-	std::stringstream b("two one four one one");       /// 
+	std::stringstream a("one two three four two one");
+	std::stringstream b("two one four one one");
 
 	Comparator c;
 	ComparisonReport report = c.compare(a, b);
