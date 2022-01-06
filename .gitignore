@@ -13,6 +13,10 @@
 *.la
 *.a
 
+*.txt
+
+ToSend/
+
 # Visual Studio Files
 Debug
 Release

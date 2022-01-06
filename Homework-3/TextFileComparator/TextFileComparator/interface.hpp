@@ -15,7 +15,13 @@ public:
 	///
 	/// For example, add("abc") adds the word "abc" once,
 	/// while add("abc", 4) adds 4 occurrances.
-	void add(const std::string& word, size_t times = 1) { map.add(word, times); }
+	void add(const std::string& word, size_t times = 1)
+	{
+		if (!contains(word))
+			map.add(word, times);
+		else
+			map[word] += times;
+	}
 
 	/// Checks whether word is contained in the container
 	bool contains(const std::string& word) const { return map.contains(word); }
@@ -32,10 +38,9 @@ public:
 	/// Returns a multiset of all words in the container
 	std::multiset<std::string> words() const { return map.words(); }
 
-	/// @brief Decrements the value corresponding to the given key <how_much> times
-	/// @param key - key of element
-	/// @param how_much - how much to decrement with
-	void decrementValueAtKey(const string& key, size_t how_much) { map.decrementValueAtKey(key, how_much); }
+	size_t& operator[](const string& key) { return map[key]; }
+
+	size_t countOfAllWords() const { return map.countOfAllWords(); }
 
 private:
 	HashMap map;
@@ -66,24 +71,72 @@ public:
 	ComparisonReport compare(std::istream& a, std::istream& b)
 	{
 		ComparisonReport res;
-		using streamiter = std::istream_iterator<std::string>;
 
-		for (streamiter it = streamiter(a); it != streamiter(); it++)
-			res.uniqueWords[0].add(*it);
-
-		for (streamiter it = streamiter(b); it != streamiter(); it++)
+		while (!a.eof())
 		{
-			if (res.uniqueWords[0].countOf(*it))
+			string line;
+			char c = a.get();
+
+			if (a.eof())
+				break;
+
+			while (!isValid(c) && !a.eof())
+				c = a.get();
+
+			while (isValid(c) && !a.eof())
 			{
-				res.uniqueWords[0].decrementValueAtKey(*it, 1);
-				res.commonWords.add(*it);
+				line += c;
+				c = a.get();
 			}
-			else
+
+			if (line.size())
+				res.uniqueWords[0][line]++;
+		}
+
+		while (!b.eof())
+		{
+			string word;
+			char c = b.get();
+
+			if (b.eof())
+				break;
+
+			while (!isValid(c) && !b.eof())
 			{
-				res.uniqueWords[1].add(*it);
+				c = b.get();
+			}
+
+			while (isValid(c) && !b.eof())
+			{
+				word += c;
+				c = b.get();
+			}
+
+			if (word.size())
+			{
+				if (res.uniqueWords[0].countOf(word))
+				{
+					res.uniqueWords[0][word]--;
+					res.commonWords[word]++;
+				}
+				else
+				{
+					res.uniqueWords[1][word]++;
+				}
 			}
 		}
 
 		return res;
+	}
+
+	/// @brief Used to check if the given character is a whitespace or not
+	/// @param c - character to check
+	/// @return true if not whitespace, false otherwise
+	bool isValid(char c)
+	{
+		if (c == ' ' || c == '\n' || c == '\r' || c == '\t')
+			return false;
+
+		return true;
 	}
 };

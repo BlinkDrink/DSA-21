@@ -14,7 +14,7 @@ class HashMap
 private:
 	/// @brief Default values for the initialization
 	const size_t DEFAULT_BUCKET_COUNT = 8;
-	const float DEFAULT_MAX_LOAD_FACTOR = 1;
+	const float DEFAULT_MAX_LOAD_FACTOR = 0.6;
 
 public:
 	/// Adds times occurences of word to the container
@@ -23,6 +23,9 @@ public:
 	/// while add("abc", 4) adds 4 occurrences.
 	void add(const string& word, size_t times = 1)
 	{
+		if (this->contains(word))
+			return;
+
 		this->insert({ word, times });
 	}
 
@@ -45,7 +48,13 @@ public:
 	/// Number of unique words in the container
 	size_t countOfUniqueWords() const
 	{
-		return fUniqueWordsCount;
+		size_t uniqueWordsCount = 0;
+		for (const std::forward_list< Data >& list : fArr)
+			for (const Data& elem : list)
+				if (elem.fValue > 0)
+					++uniqueWordsCount;
+
+		return uniqueWordsCount;
 	}
 
 	/// Returns a multiset of all words in the container
@@ -61,6 +70,16 @@ public:
 		return res;
 	}
 
+	size_t countOfAllWords() const
+	{
+		size_t allWordsCount = 0;
+		for (const std::forward_list< Data >& list : fArr)
+			for (const Data& elem : list)
+				allWordsCount += elem.fValue;
+
+		return allWordsCount;
+	}
+
 public:
 	/// @brief Descriptor of hash-table element
 	struct Data
@@ -71,7 +90,6 @@ public:
 
 	HashMap()
 		: fArr(DEFAULT_BUCKET_COUNT)
-		, fUniqueWordsCount(0)
 		, fSize(0)
 		, fMaxLoadFactor(DEFAULT_MAX_LOAD_FACTOR)
 	{}
@@ -82,25 +100,14 @@ public:
 
 	/// @brief Getter
 	/// @return number of elements in the hash-table
-	size_t size() const { return fSize; }
+	size_t size() const
+	{
+		return fSize;
+	}
 
 	/// @brief Getter
 	/// @return the number of separate chains(number forward_lists in the vector)
 	size_t bucket_count() const { return fArr.size(); }
-
-	/// @brief Decrements the value at key with <how_much>
-	/// @param key - key of element
-	/// @param how_much - how many times to decrement
-	void decrementValueAtKey(const string& key, int how_much)
-	{
-		if (contains(key)) {
-			find(key)->fValue -= how_much;
-			fSize -= how_much;
-		}
-
-		if (countOf(key) == 0)
-			fUniqueWordsCount--;
-	}
 
 	/// @brief Rehashing function, used to resize the inner vector of forward_lists
 	/// @param bucketsCount - the number of buckets to the hash-table will be resized
@@ -115,12 +122,20 @@ public:
 
 		vector<forward_list<Data>> newArr(bucketsCount);
 		std::swap(fArr, newArr);
-		fUniqueWordsCount = 0;
 		fSize = 0;
 
 		for (const std::forward_list< Data >& list : newArr)
 			for (const Data& elem : list)
 				this->add(elem.fKey, elem.fValue);
+	}
+
+	size_t& operator[](const string& key)
+	{
+		Data* found = this->find(key);
+		if (found)
+			return found->fValue;
+
+		return insert({ key,0 })->fValue;
 	}
 
 private:
@@ -158,26 +173,26 @@ private:
 	{
 		size_t index = this->hash(pair.fKey);
 
-		if ((float)(this->size() + pair.fValue) / this->bucket_count() > this->max_load_factor())
+		if ((float)(this->size() + 1) / this->bucket_count() > this->max_load_factor())
 			this->rehash(this->bucket_count() * 2);
 
-		if (this->contains(pair.fKey))
-		{
-			find(pair.fKey)->fValue += pair.fValue;
-		}
-		else {
-			fArr[index].push_front(pair);
-			++fUniqueWordsCount;
-		}
+		//if (this->contains(pair.fKey))
+		//{
+		//	find(pair.fKey)->fValue += pair.fValue;
+		//}
+		//else {
+		fArr[index].push_front(pair);
+		//++fUniqueWordsCount;
+		//}
 
-		fSize += pair.fValue;
+		++fSize;
+
 		return &fArr[index].front();
 	}
 
 private:
 	/// @brief Private data members
 	vector<forward_list<Data>> fArr;
-	size_t fUniqueWordsCount;
-	size_t fSize;
+	size_t fSize; // number of entries in the hash-table
 	float fMaxLoadFactor;
 };
