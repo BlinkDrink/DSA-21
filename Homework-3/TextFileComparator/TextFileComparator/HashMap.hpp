@@ -70,6 +70,8 @@ public:
 		return res;
 	}
 
+	/// @brief Gets the count of all words in the table(including repeated words)
+	/// @return the count of all words
 	size_t countOfAllWords() const
 	{
 		size_t allWordsCount = 0;

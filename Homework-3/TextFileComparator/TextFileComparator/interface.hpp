@@ -32,14 +32,15 @@ public:
 	/// Number of unique words in the container
 	size_t countOfUniqueWords() const { return map.countOfUniqueWords(); }
 
-	/// Number of words in the map
-	size_t size() const { return map.size(); }
-
 	/// Returns a multiset of all words in the container
 	std::multiset<std::string> words() const { return map.words(); }
 
+	/// @brief operator[] used to access given key's value
+	/// @param key - key of element
+	/// @return the value corresponding to the given key in the hash-table
 	size_t& operator[](const string& key) { return map[key]; }
 
+	/// @return Count of all words in the multiset
 	size_t countOfAllWords() const { return map.countOfAllWords(); }
 
 private:
@@ -74,7 +75,7 @@ public:
 
 		while (!a.eof())
 		{
-			string line;
+			string word;
 			char c = a.get();
 
 			if (a.eof())
@@ -85,12 +86,12 @@ public:
 
 			while (isValid(c) && !a.eof())
 			{
-				line += c;
+				word += c;
 				c = a.get();
 			}
 
-			if (line.size())
-				res.uniqueWords[0][line]++;
+			if (word.size())
+				res.uniqueWords[0][word]++;
 		}
 
 		while (!b.eof())
