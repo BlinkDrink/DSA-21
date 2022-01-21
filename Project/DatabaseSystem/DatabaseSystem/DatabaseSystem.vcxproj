@@ -142,10 +142,18 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="DataType.hpp" />
-    <ClInclude Include="DoubleType.hpp" />
+    <ClInclude Include="BPTree.hpp" />
+    <ClInclude Include="IntegerObject.hpp" />
+    <ClInclude Include="Object.hpp" />
+    <ClInclude Include="DataBase.hpp" />
     <ClInclude Include="HashMap.hpp" />
-    <ClInclude Include="StringType.hpp" />
+    <ClInclude Include="ObjectType.h" />
+    <ClInclude Include="Page.hpp" />
+    <ClInclude Include="Record.hpp" />
+    <ClInclude Include="RecordPtr.hpp" />
+    <ClInclude Include="StringObject.hpp" />
+    <ClInclude Include="Table.hpp" />
+    <ClInclude Include="TypeWrapper.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
