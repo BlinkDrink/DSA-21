@@ -37,14 +37,32 @@ public:
 		return *this;
 	}
 
+	/**
+	 * @brief Used for writing information of fContent to a file
+	 * @param out - output stream
+	*/
 	void write(std::ostream& out)
 	{
 		fContent->write(out);
 	}
 
+	/**
+	 * @brief Used for reading the information from a file into fContent
+	 * @param in - input stream
+	*/
 	void read(std::istream& in)
 	{
 		fContent->read(in);
+	}
+
+	/**
+	 * @brief Used for  comparing two objects of type TypeWrapper
+	 * @param other - the object to be compared with
+	 * @return true if this is bigger than other
+	*/
+	bool operator>(const TypeWrapper& other) const
+	{
+		return fContent > other.fContent;
 	}
 
 	/**
@@ -87,7 +105,6 @@ public:
 	{
 		delete fContent;
 	}
-
 
 private:
 	Object* fContent;

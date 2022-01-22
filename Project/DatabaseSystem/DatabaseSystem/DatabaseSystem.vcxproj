@@ -153,6 +153,7 @@
     <ClInclude Include="RecordPtr.hpp" />
     <ClInclude Include="StringObject.hpp" />
     <ClInclude Include="Table.hpp" />
+    <ClInclude Include="test.hpp" />
     <ClInclude Include="TypeWrapper.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

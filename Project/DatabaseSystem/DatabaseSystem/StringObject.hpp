@@ -28,7 +28,6 @@ public:
 
 	virtual void write(std::ostream& out) const final override
 	{
-		size_t dataType;
 		size_t size;
 
 		ObjectType s = ObjectType::STRING;
@@ -53,4 +52,11 @@ public:
 
 private:
 	std::string fValue;
+
+	virtual bool isGreaterThan(const Object& other) const override
+	{
+		// The cast is safe because of the precondition documented in the
+		// base class
+		return fValue > static_cast<const StringObject&>(other).fValue;
+	}
 };

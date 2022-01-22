@@ -71,5 +71,8 @@
     <ClInclude Include="BPTree.hpp">
       <Filter>Header Files\BPTree</Filter>
     </ClInclude>
+    <ClInclude Include="test.hpp">
+      <Filter>Header Files\BPTree</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

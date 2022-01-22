@@ -42,4 +42,9 @@ public:
 
 private:
 	int fValue;
+
+	virtual bool isGreaterThan(const Object& other) const final override
+	{
+		return fValue > static_cast<const IntegerObject&>(other).fValue;
+	}
 };

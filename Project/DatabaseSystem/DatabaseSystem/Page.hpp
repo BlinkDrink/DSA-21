@@ -116,7 +116,7 @@ public:
 		delete[] str;
 
 		/// @brief Read number of records 
-		size_t num_records;
+		size_t num_records = 0;
 		f.read((char*)&num_records, sizeof(num_records));
 
 		/// @brief Read records themselves
@@ -141,7 +141,7 @@ public:
 	 * @param index the position of the record in the page
 	 * @return the required record
 	 */
-	Record get(int index)
+	Record get(size_t index)
 	{
 		if (index >= 0 && index < records.size())
 			return records[index];

@@ -6,6 +6,7 @@
 class RecordPtr
 {
 public:
+	RecordPtr() : pageNumber(-1), indexInPage(-1) {}
 	RecordPtr(int pageNumber, int indexInPage) : pageNumber(pageNumber), indexInPage(indexInPage) {}
 
 	/**
@@ -23,6 +24,7 @@ public:
 	{
 		return indexInPage;
 	}
+
 private:
 	int pageNumber, indexInPage;
 };
