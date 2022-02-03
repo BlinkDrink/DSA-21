@@ -156,9 +156,27 @@ public:
 				exp.erase(0, pos + 1);
 
 				pos = exp.find(" ");
-				subStr = exp.substr(0, pos); // Column value
-				val = subStr;
+				subStr = exp.substr(0, pos);
+				if (subStr.find("\"") != exp.npos)
+				{
+					size_t numQuotes = 0;
+					size_t i;
+					for (i = 0; i < exp.size(); i++)
+					{
+						if (exp[i] == '"')
+							numQuotes++;
 
+						val += exp[i];
+						if (numQuotes % 2 == 0)
+							break;
+					}
+					pos = i;
+				}
+				else
+				{
+					subStr = exp.substr(0, pos); // Column value
+					val = subStr;
+				}
 				result += " " + to_string(index);
 
 				// Check if query contains primary key, if so then add it to the array of primary key queries
@@ -220,10 +238,9 @@ private:
 		}
 		else if (sh::isStringValidString(cpy))
 		{
-			sh::removeQuotations(cpy);
 			return TypeWrapper(cpy);
 		}
-		else
+		else if (sh::isStringDouble(cpy))
 		{
 			return TypeWrapper(stod(cpy));
 		}

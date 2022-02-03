@@ -432,22 +432,7 @@ public:
 		vector<RecordPtr> answer;
 		Node* cursor = root;
 		while (cursor && !cursor->fIsLeaf)
-		{
-			for (size_t i = 0; i < cursor->fKeys.size(); i++)
-			{
-				if (cursor->fKeys[i].first > what)
-				{
-					cursor = cursor->ptr[i];
-					break;
-				}
-
-				if (i == cursor->fKeys.size() - 1)
-				{
-					cursor = cursor->ptr[i + 1];
-					break;
-				}
-			}
-		}
+			cursor = cursor->ptr[0];
 
 		while (cursor)
 		{

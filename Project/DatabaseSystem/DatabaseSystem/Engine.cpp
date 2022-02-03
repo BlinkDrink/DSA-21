@@ -1,4 +1,7 @@
 #include "Engine.h"
+#include <algorithm>
+
+using std::max;
 
 void Engine::menu()
 {
@@ -86,7 +89,7 @@ void Engine::printSelectedRecords(vector<Record>& records, vector<string>& selec
 		for (size_t j = 0; j < selectedColumns.size(); j++)
 		{
 			TypeWrapper content = records[i].get(colIndex[selectedColumns[j]]);
-			printCellInformation(content, longestWordsPerCol[selectedColumns[j]]);
+			printCellInformation(content, longestWordsPerCol[selectedColumns[j]], selectedColumns[j].size());
 			cout << " | ";
 		}
 
@@ -96,13 +99,11 @@ void Engine::printSelectedRecords(vector<Record>& records, vector<string>& selec
 	cout << "Total " << records.size() << " records selected." << endl;
 }
 
-void Engine::printCellInformation(TypeWrapper& cell, size_t longestWordOfCol) const
+void Engine::printCellInformation(TypeWrapper& cell, size_t longestWordOfCol, size_t colSize) const
 {
 	if (cell.getContent() != nullptr)
 	{
-		string spaces;
-		spaces = string(longestWordOfCol - cell.getContent()->size(), ' ');
-
+		string spaces(colSize > longestWordOfCol ? colSize - cell.getContent()->size() : longestWordOfCol - cell.getContent()->size(), ' ');
 		cout << cell.getContent()->toString();
 		cout << spaces;
 	}
@@ -114,21 +115,27 @@ void Engine::printHeader(vector<string>& selectedColumns, unordered_map<string, 
 	{
 		string spaces;
 		if (longestWordsPerCol[selectedColumns[j]] != 0)
-			spaces = string(longestWordsPerCol[selectedColumns[j]] - selectedColumns[j].size(), ' ');
-		else
-			spaces = string(selectedColumns[j].size(), ' ');
+		{
+			size_t numSpaces = longestWordsPerCol[selectedColumns[j]] > selectedColumns[j].size() ? longestWordsPerCol[selectedColumns[j]] - selectedColumns[j].size() : 0;
+			spaces = string(numSpaces, ' ');
+		}
+		//else
+		//	spaces = string(selectedColumns[j].size(), ' ');
 
 		cout << " | " << selectedColumns[j] << spaces;
 	}
 
 	cout << " |" << endl;
 
-	cout << "---";
-	for (size_t i = 0; i < selectedColumns.size(); i++)
+	cout << " --";
+	for (size_t i = 0; i < selectedColumns.size(); i++) {
 		for (size_t j = 0; j < longestWordsPerCol[selectedColumns[i]]; j++)
 			cout << "-";
 
-	cout << "---" << endl;
+		cout << "---";
+	}
+
+	cout << "--" << endl;
 }
 
 size_t Engine::getLongestContentAtCol(size_t col, vector<Record>& records) const
@@ -158,7 +165,6 @@ unordered_map<string, size_t> Engine::getLongestWordPerCol(vector<Record>& recor
 
 	return lengthPerCol;
 }
-
 
 void Engine::run()
 {
@@ -300,22 +306,42 @@ void Engine::run()
 				vector<string> selectedColumns = sh::splitBy(cp.atToken(1), ",");
 				string tblName = cp.atToken(3);
 				Table& target = db.getTable(tblName);
-				Query query(cp.atToken(4), target.getTableScheme(), target.getPrimaryKey());
 				bool isDistinct = cp.isDistinct();
 				string orderBy = cp.getOrderBy();
 
-				if (selectedColumns.size() == 1 && selectedColumns[0] == "*")
+				if (cp.size() <= 4)
 				{
-					selectedColumns = sh::splitBy(db.getTable(tblName).getTableHeader(), ", ");
-					sh::removeEmptyStringsInVector(selectedColumns);
-					vector<Record> answer = target.select(query, orderBy, isDistinct, selectedColumns);
-					printSelectedRecords(answer, selectedColumns, target.getColIndex());
+					Query q("", target.getTableScheme(), target.getPrimaryKey());
+					if (selectedColumns.size() == 1 && selectedColumns[0] == "*")
+					{
+						selectedColumns = sh::splitBy(db.getTable(tblName).getTableHeader(), ", ");
+						sh::removeEmptyStringsInVector(selectedColumns);
+						vector<Record> answer = target.select(q, orderBy, isDistinct, selectedColumns);
+						printSelectedRecords(answer, selectedColumns, target.getColIndex());
+					}
+					else
+					{
+						vector<Record> answer = target.select(q, orderBy, isDistinct, selectedColumns);
+						printSelectedRecords(answer, selectedColumns, target.getColIndex());
+					}
 				}
 				else
 				{
-					vector<Record> answer = target.select(query, orderBy, isDistinct, selectedColumns);
-					printSelectedRecords(answer, selectedColumns, target.getColIndex());
+					Query query(cp.atToken(4), target.getTableScheme(), target.getPrimaryKey());
+					if (selectedColumns.size() == 1 && selectedColumns[0] == "*")
+					{
+						selectedColumns = sh::splitBy(db.getTable(tblName).getTableHeader(), ", ");
+						sh::removeEmptyStringsInVector(selectedColumns);
+						vector<Record> answer = target.select(query, orderBy, isDistinct, selectedColumns);
+						printSelectedRecords(answer, selectedColumns, target.getColIndex());
+					}
+					else
+					{
+						vector<Record> answer = target.select(query, orderBy, isDistinct, selectedColumns);
+						printSelectedRecords(answer, selectedColumns, target.getColIndex());
+					}
 				}
+
 			}
 			catch (const invalid_argument& e)
 			{

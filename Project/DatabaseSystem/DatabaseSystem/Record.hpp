@@ -15,8 +15,6 @@ private:
 	vector<TypeWrapper> fValues;
 	size_t columns;
 
-
-
 public:
 	Record() :columns(0) {}
 
@@ -100,7 +98,7 @@ public:
 			return false;
 
 		for (size_t i = 0; i < columns; i++)
-			if (fValues[i] != other.fValues[i])
+			if (fValues[i] >= other.fValues[i])
 				return false;
 
 		return true;
@@ -112,7 +110,7 @@ public:
 			return false;
 
 		for (size_t i = 0; i < columns; i++)
-			if (fValues[i] != other.fValues[i])
+			if (fValues[i] <= other.fValues[i])
 				return false;
 
 		return true;

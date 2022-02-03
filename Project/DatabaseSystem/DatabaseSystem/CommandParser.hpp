@@ -136,7 +136,7 @@ public:
 			{
 				tokensWordInd = i;
 				while (isalpha(fRaw[i]) || isdigit(fRaw[i]) || fRaw[i] == '*' || fRaw[i] == '>' || fRaw[i] == '<' || fRaw[i] == '='
-					|| fRaw[i] == '!')
+					|| fRaw[i] == '!' || fRaw[i] == ',' || fRaw[i] == '.')
 					i++;
 
 				fTokens.push_back(fRaw.substr(tokensWordInd, i - tokensWordInd));

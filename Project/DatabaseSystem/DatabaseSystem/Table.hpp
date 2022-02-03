@@ -390,19 +390,10 @@ public:
 				// Union (OR)
 				else
 				{
-					map<Record, int> mp;
 					vector<Record> vec_union;
-
-					// Inserting array elements in mp
-					for (int i = 0; i < val2.size(); i++)
-						mp.insert({ val2[i], i });
-
-					for (int i = 0; i < val1.size(); i++)
-						mp.insert({ val1[i], i });
-
-					for (const pair<Record, int>& entry : mp)
-						vec_union.push_back(entry.first);
-
+					std::sort(val1.begin(), val1.end());
+					std::sort(val2.begin(), val2.end());
+					std::set_union(val1.begin(), val1.end(), val2.begin(), val2.end(), std::back_inserter(vec_union));
 					result.push(vec_union);
 				}
 			}
@@ -422,7 +413,25 @@ public:
 	*/
 	vector<Record> select(Query& query, const string& orderByWhat, bool isDistinct, vector<string>& selectedCols)
 	{
-		vector<Record> answer = select(query);
+		vector<Record> answer;
+		if (!query.getShuntingOutput().empty())
+		{
+			answer = select(query);
+		}
+		else
+		{
+			for (size_t index = 0; index <= curPageIndex; index++) {
+				ifstream in(path + tableName + "_" + to_string(index) + ".bin", std::ios::binary);
+
+				Page p(in);
+				for (size_t i = 0; i < p.size(); ++i)
+				{
+					Record r = p.get(i);
+					answer.push_back(r);
+				}
+				in.close();
+			}
+		}
 
 		if (isDistinct)
 			answer = distinct(answer, selectedCols);
@@ -541,9 +550,9 @@ public:
 	 *	@brief Check that all specified columns are in the table schema and matches the defined types
 	 *	@param htblColNameValue some columns to be checked against the table schema
 	 */
-	void checkColumns(std::unordered_map<string, TypeWrapper> htblColNameValue)
+	void checkColumns(std::unordered_map<string, TypeWrapper> colNameValue)
 	{
-		for (const pair<string, TypeWrapper>& entry : htblColNameValue)
+		for (const pair<string, TypeWrapper>& entry : colNameValue)
 		{
 			string colName = entry.first;
 			if (colTypes.find(colName) == colTypes.end())

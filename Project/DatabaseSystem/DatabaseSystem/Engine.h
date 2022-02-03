@@ -43,7 +43,7 @@ private:
 
 	size_t getLongestContentAtCol(size_t col, vector<Record>& records) const;
 
-	void printCellInformation(TypeWrapper& cell, size_t longestWordOfCol) const;
+	void printCellInformation(TypeWrapper& cell, size_t longestWordOfCol, size_t colSize) const;
 
 	unordered_map<string, size_t> getLongestWordPerCol(vector<Record>& records, vector<string>& selectedColumns, unordered_map<string, size_t> colIndex) const;
 
