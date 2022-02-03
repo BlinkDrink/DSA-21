@@ -1,5 +1,8 @@
 #pragma once 
 #include "Object.hpp"
+#include"FileHelper.hpp"
+
+using fh = FileHelper;
 
 /**
  * @brief Descriptor of string object
@@ -9,11 +12,11 @@ class StringObject : public Object
 public:
 	StringObject() {}
 
-	StringObject(std::string value) : fValue(value) {}
+	StringObject(string value) : fValue(value) {}
 
 	virtual Object* clone() const final override
 	{
-		return new StringObject(fValue);
+		return new StringObject(*this);
 	}
 
 	virtual size_t memsize() const final override
@@ -21,42 +24,40 @@ public:
 		return fValue.size();
 	}
 
-	virtual std::string toString() const final override
+	virtual string toString() const final override
 	{
 		return fValue;
 	}
 
-	virtual void write(std::ostream& out) const final override
+	virtual size_t size() const final override
 	{
-		size_t size;
+		return fValue.size();
+	}
+
+	virtual void write(ofstream& out) const final override
+	{
+		size_t size = 0;
 
 		ObjectType s = ObjectType::STRING;
 		out.write((char*)&s, sizeof(s));
-		size = fValue.size();
-		out.write((char*)&size, sizeof(size));
-		out.write((char*)fValue.c_str(), size);
-	}
-
-	virtual void read(std::istream& in) final override
-	{
-		size_t size = 0;
-		char* str;
-
-		in.read((char*)&size, sizeof(size));
-		str = new char[size + 1];
-		in.read(str, size);
-		str[size] = '\0';
-		fValue = str;
-		delete[] str;
+		fh::writeString(out, fValue);
 	}
 
 private:
-	std::string fValue;
+	string fValue;
 
 	virtual bool isGreaterThan(const Object& other) const override
 	{
-		// The cast is safe because of the precondition documented in the
-		// base class
 		return fValue > static_cast<const StringObject&>(other).fValue;
+	}
+
+	virtual bool isEqualTo(const Object& other) const override
+	{
+		return fValue == static_cast<const StringObject&>(other).fValue;
+	}
+
+	virtual bool isLesserThan(const Object& other) const override
+	{
+		return fValue < static_cast<const StringObject&>(other).fValue;
 	}
 };

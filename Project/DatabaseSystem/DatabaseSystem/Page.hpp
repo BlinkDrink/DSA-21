@@ -1,5 +1,7 @@
 #pragma once
 #include "Record.hpp"
+#include "FileHelper.hpp"
+using fh = FileHelper;
 
 class Page {
 
@@ -10,10 +12,30 @@ private:
 	 * file format (.bin files)
 	 */
 	int maxSize;
-	std::string path;
-	std::vector<Record> records;
+	string path;
+	vector<Record> records;
 
 public:
+
+	Page(ifstream& in)
+	{
+		/// @brief Read page's max capacity to object
+		in.read((char*)&maxSize, sizeof(maxSize));
+
+		/// @brief Read page's path to object
+		fh::readString(in, path);
+
+		/// @brief Read number of records 
+		size_t num_records = 0;
+		in.read((char*)&num_records, sizeof(num_records));
+
+		/// @brief Read records themselves
+		for (size_t i = 0; i < num_records; i++)
+		{
+			records.push_back(Record(in));
+		}
+	}
+
 	/**
 	 * Create a new page specifying the maximum number of records it can hold
 	 * and the path at which the page will be stored relative to the executable files
@@ -21,14 +43,12 @@ public:
 	 * @param maxSize the maximum number of records that fit in one page
 	 * @param path the path at which the page is stored relative to the executable files
 	 */
-	Page(int maxSize, std::string path)
+	Page(int maxSize, const string& path)
 	{
 		this->path = path;
 		this->maxSize = maxSize;
-		//this->save();
+		this->save();
 	}
-
-	Page() :maxSize(0) {}
 
 	/**
 	 * Check whether a page has records with the maximum number of records or not
@@ -67,64 +87,29 @@ public:
 	}
 
 	/**
-	 * @brief Save the page on the disk(write)
+	 * @brief Save the page on the disk
 	*/
 	void save()
 	{
-		std::fstream f(path, std::ios::out);
-		if (!f.is_open())
-			throw std::logic_error("Couldn't open file to save page" + path);
+		ofstream out(path, std::ios::binary);
+		if (!out.is_open())
+			throw std::logic_error("Couldn't open file to save page " + path);
 
 		/// @brief Save page's max capacity to file
-		f.write((char*)&maxSize, sizeof(maxSize));
+		out.write((char*)&maxSize, sizeof(maxSize));
 
 		/// @brief Save page's path to file
-		size_t pathSize = path.size();
-		f.write((char*)&pathSize, sizeof(pathSize));
-		f.write((char*)path.c_str(), pathSize);
+		fh::writeString(out, path);
 
 		/// @brief Save page's number of current records to file
 		size_t size = records.size();
-		f.write((char*)&size, sizeof(size));
+		out.write((char*)&size, sizeof(size));
 
 		/// @brief Save the records themseleves to file
 		for (size_t i = 0; i < records.size(); i++)
-			records[i].write(f);
+			records[i].write(out);
 
-		f.close();
-	}
-
-	/**
-	 * @brief Load page object from file(read)
-	*/
-	void load()
-	{
-		std::fstream f(path, std::ios::in);
-		if (!f.is_open())
-			throw std::logic_error("Couldn't open file to read page" + path);
-
-		/// @brief Read page's max capacity to object
-		f.read((char*)&maxSize, sizeof(maxSize));
-
-		/// @brief Read page's path to object
-		size_t pathSize;
-		f.read((char*)&pathSize, sizeof(pathSize));
-		char* str = new char[pathSize + 1];
-		f.read(str, pathSize);
-		str[pathSize] = '\0';
-		path = str;
-		delete[] str;
-
-		/// @brief Read number of records 
-		size_t num_records = 0;
-		f.read((char*)&num_records, sizeof(num_records));
-
-		/// @brief Read records themselves
-		for (size_t i = 0; i < num_records; i++)
-		{
-			records.push_back(Record(0));
-			records.back().read(f);
-		}
+		out.close();
 	}
 
 	/**

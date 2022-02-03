@@ -1,5 +1,4 @@
 #pragma once
-#include<memory>
 #include "Object.hpp"
 #include "ObjectType.h"
 
@@ -15,12 +14,12 @@ public:
 
 	virtual Object* clone() const final override
 	{
-		return new IntegerObject(fValue);
+		return new IntegerObject(*this);
 	}
 
 	virtual size_t memsize() const final override
 	{
-		return sizeof(*this);
+		return sizeof(fValue);
 	}
 
 	virtual std::string toString() const final override
@@ -28,16 +27,16 @@ public:
 		return std::to_string(fValue);
 	}
 
-	virtual void write(std::ostream& out) const final override
+	virtual size_t size() const final override
+	{
+		return to_string(fValue).size();
+	}
+
+	virtual void write(ofstream& out) const final override
 	{
 		ObjectType i = ObjectType::INT;
 		out.write((char*)&i, sizeof(i));
 		out.write((char*)&fValue, sizeof(fValue));
-	}
-
-	virtual void read(std::istream& in) final override
-	{
-		in.read((char*)&fValue, sizeof(fValue));
 	}
 
 private:
@@ -46,5 +45,15 @@ private:
 	virtual bool isGreaterThan(const Object& other) const final override
 	{
 		return fValue > static_cast<const IntegerObject&>(other).fValue;
+	}
+
+	virtual bool isEqualTo(const Object& other) const final override
+	{
+		return fValue == static_cast<const IntegerObject&>(other).fValue;
+	}
+
+	virtual bool isLesserThan(const Object& other) const final override
+	{
+		return fValue < static_cast<const IntegerObject&>(other).fValue;
 	}
 };

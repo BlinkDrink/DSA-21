@@ -1,15 +1,49 @@
 #pragma once
+#include<string>
 #include "IntegerObject.hpp"
 #include "StringObject.hpp"
+#include "DoubleObject.hpp"
+
+using std::string;
 
 class TypeWrapper
 {
 public:
+	/// Object lifetime
 	TypeWrapper() :fContent(nullptr) {}
+
+	TypeWrapper(ifstream& in)
+	{
+		ObjectType t = ObjectType::INT;
+		in.read((char*)&t, sizeof(t));
+
+		if (t == ObjectType::INT) {
+			int value = 0;
+			in.read((char*)&value, sizeof(value));
+			fContent = new IntegerObject(value);
+		}
+		else if (t == ObjectType::STRING) {
+			string value;
+			fh::readString(in, value);
+			fContent = new StringObject(value);
+		}
+		else if (t == ObjectType::DOUBLE)
+		{
+			double value = 0;
+			in.read((char*)&value, sizeof(value));
+			fContent = new DoubleObject(value);
+		}
+		else
+		{
+			fContent = nullptr;
+		}
+	}
 
 	TypeWrapper(const std::string& content) :fContent(new StringObject(content)) {}
 
 	TypeWrapper(int content) :fContent(new IntegerObject(content)) {}
+
+	TypeWrapper(double content) :fContent(new DoubleObject(content)) {}
 
 	/**
 	*	@brief Copy constructor
@@ -38,39 +72,11 @@ public:
 	}
 
 	/**
-	 * @brief Used for writing information of fContent to a file
-	 * @param out - output stream
-	*/
-	void write(std::ostream& out)
-	{
-		fContent->write(out);
-	}
-
-	/**
-	 * @brief Used for reading the information from a file into fContent
-	 * @param in - input stream
-	*/
-	void read(std::istream& in)
-	{
-		fContent->read(in);
-	}
-
-	/**
-	 * @brief Used for  comparing two objects of type TypeWrapper
-	 * @param other - the object to be compared with
-	 * @return true if this is bigger than other
-	*/
-	bool operator>(const TypeWrapper& other) const
-	{
-		return fContent > other.fContent;
-	}
-
-	/**
 	*	@brief Move constructor
 	*
 	*	@param other - Cell object from which moving will be made
 	*/
-	TypeWrapper(TypeWrapper&& other) noexcept
+	TypeWrapper(TypeWrapper&& other) noexcept : TypeWrapper()
 	{
 		moveFrom(other);
 	}
@@ -84,7 +90,6 @@ public:
 	{
 		if (this != &other)
 		{
-			delete fContent;
 			moveFrom(other);
 		}
 
@@ -106,23 +111,39 @@ public:
 		delete fContent;
 	}
 
+public:
+
+	string toString() const { return fContent->toString(); }
+
+	/**
+	 * @brief Used for writing information of fContent to a file
+	 * @param out - output stream
+	*/
+	void write(ofstream& out) const
+	{
+		fContent->write(out);
+	}
+
+	bool operator>(const TypeWrapper& other) const { return fContent->operator>(*other.fContent); }
+	bool operator==(const TypeWrapper& other) const { return fContent->operator==(*other.fContent); }
+	bool operator<(const TypeWrapper& other) const { return fContent->operator<(*other.fContent); }
+	bool operator<=(const TypeWrapper& other) const { return (fContent->operator<(*other.fContent) || fContent->operator==(*other.fContent)); }
+	bool operator>=(const TypeWrapper& other) const { return (fContent->operator<(*other.fContent) || fContent->operator==(*other.fContent)); }
+	bool operator!=(const TypeWrapper& other) const { return (fContent->operator<(*other.fContent) || fContent->operator>(*other.fContent)); }
+
+
 private:
 	Object* fContent;
 
 	void copyFrom(const TypeWrapper& other)
 	{
 		if (other.fContent != nullptr)
-		{
 			fContent = other.fContent->clone();
-		}
 		else
-		{
 			fContent = nullptr;
-		}
 	}
 
 	void moveFrom(TypeWrapper& other) {
-		fContent = other.fContent;
-		other.fContent = nullptr;
+		std::swap(fContent, other.fContent);
 	}
 };

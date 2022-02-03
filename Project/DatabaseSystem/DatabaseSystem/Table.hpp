@@ -1,115 +1,197 @@
 #pragma once
 #include<iostream>
+#include<stack>
 #include<fstream>
+#include<list>
+#include<map>
 #include<unordered_map>
+#include <filesystem>
 #include "Page.hpp"
 #include "BPTree.hpp"
+#include "FileHelper.hpp"
+#include "Query.hpp"
+#include "SortingHelper.h"
 
-using std::fstream;
+using std::multimap;
+using std::map;
+using std::unordered_map;
+using std::ifstream;
+using std::ofstream;
 using std::string;
+using std::to_string;
+using std::pair;
+using std::invalid_argument;
+using std::exception;
+using std::logic_error;
+using std::list;
 
-class Table {
+namespace fs = std::filesystem;
+using fh = FileHelper;
 
-private:
-	/**
-	 * Table instances control pages that contain the stored records on the hard disk.
-	 * All actual read and write operations are done in this class.
-	 */
-	 //private static final long serialVersionUID = 1L;
-
-	int maxTuplesPerPage, indexOrder, curPageIndex, numOfColumns;
-	string path, tableName, tableHeader, primaryKey;
-	std::unordered_map<string, string> colTypes, colRefs;
-	std::unordered_map<string, size_t> colIndex;
-	std::unordered_map<string, BPTree<TypeWrapper>> colNameIndex;
+class Table
+{
+public:
+	Table() : curPageIndex(0), numOfColumns(0), bytes(0), maxRecordsPerPage(1024) {}
 
 	/**
 	 * Create a new table with the specified parameter list
 	 * @param path
 	 * @param strTableName the table name
 	 * @param htblColNameType the types of table columns
-	 * @param htblColNameRefs a mapping of foreign key references
 	 * @param strKeyColName the primary key of the table
 	 * @param maxTuplesPerPage the maximum number of records a page can hold
 	 */
-	Table(string path, string strTableName, std::unordered_map<string, string> htblColNameType,
-		std::unordered_map<string, string> htblColNameRefs, string strKeyColName, int maxTuplesPerPage, int indexOrder)
-
+	Table(const string& path, const string& tableName, unordered_map<string, string>& colNameType,
+		const string& indexedColName, int maxRecordsPerPage)
 	{
-
-		this->path = path + strTableName + "/";
-		this->tableName = strTableName;
-		this->primaryKey = strKeyColName;
-		this->colTypes = htblColNameType;
-		this->colRefs = htblColNameRefs;
-		this->maxTuplesPerPage = maxTuplesPerPage;
+		this->path = path + tableName + "/";
+		this->tableName = tableName;
+		this->primaryKey = indexedColName;
+		this->colTypes = colNameType;
+		this->maxRecordsPerPage = maxRecordsPerPage;
 		this->curPageIndex = -1;
 		this->numOfColumns = 0;
-		this->indexOrder = indexOrder;
+		this->bytes = 0;
 
 		initializeColumnsIndexes();
 		createDirectory();
 		createPage();
-		this->createIndex(primaryKey);
+
+		if (!primaryKey.empty())
+			createIndex(primaryKey);
+
 		saveTable();
 	}
 
 	/**
-	 * Save the table object in a binary file on the secondary storage
+	 * @brief Reading constructor
+	 * @param in
+	*/
+	Table(ifstream& in)
+	{
+		in.read((char*)&bytes, sizeof(bytes));
+		in.read((char*)&maxRecordsPerPage, sizeof(maxRecordsPerPage));
+		in.read((char*)&curPageIndex, sizeof(curPageIndex));
+
+		fh::readString(in, path);
+		fh::readString(in, tableName);
+		fh::readString(in, primaryKey);
+
+		size_t colTypesSize = 0;
+		in.read((char*)&colTypesSize, sizeof(colTypesSize));
+		for (size_t i = 0; i < colTypesSize; i++)
+		{
+			string first, second;
+			fh::readString(in, first);
+			fh::readString(in, second);
+			colTypes.insert({ first, second });
+		}
+
+		indexedColumnRecords = BPTree(in);
+
+		initializeColumnsIndexes();
+	}
+
+	/**
+	 *	@brief Save table to binary file on the disk
 	 */
 	void saveTable()
 	{
-		std::fstream f(path + tableName + ".bin", std::ios::out);
-		if (!f.is_open())
-			throw std::exception("Couldn't open file to save the table");
+		ofstream out(path + tableName + ".bin", std::ios::binary);
+		if (!out.is_open())
+			throw exception("Couldn't open file to save the table");
 
-		f.write((char*)this, sizeof(*this));
-		f.close();
+		out.write((char*)&bytes, sizeof(bytes));
+		out.write((char*)&maxRecordsPerPage, sizeof(maxRecordsPerPage));
+		out.write((char*)&curPageIndex, sizeof(curPageIndex));
+
+		fh::writeString(out, path);
+		fh::writeString(out, tableName);
+		fh::writeString(out, primaryKey);
+
+		size_t colTypesSize = colTypes.size();
+		out.write((char*)&colTypesSize, sizeof(colTypesSize));
+		for (pair<string, string> entry : colTypes)
+		{
+			fh::writeString(out, entry.first);
+			fh::writeString(out, entry.second);
+		}
+
+		indexedColumnRecords.write(out);
+
+		out.close();
 	}
 
 	/**
-	 * Map every table column to an index to store records in arrays.
+	 *	@brief Map every table column to an index
 	 */
 	void initializeColumnsIndexes() {
-		tableHeader = "";
 		int index = 0;
-		for (std::pair<string, string> entry : colTypes)
+		for (pair<string, string> entry : colTypes)
 		{
 			colIndex.insert({ entry.first, index++ });
-			numOfColumns++;
 			tableHeader += entry.first + ", ";
 		}
+		numOfColumns = colTypes.size();
 	}
 
 	/**
-	 * Create a directory for the table in which the table object
-	 * and table pages are stored.
+	 *	@brief Create a directory for the table in which the table's properties
+	 *	and table's pages are stored.
 	 */
 	void createDirectory()
 	{
-		system(("mkdir " + path).c_str());
+		fs::create_directories(path);
 	}
 
 	/**
-	 * Create a page to hold records for this table.
-	 * @return the created page
-	 * @throws IOException If an I/O error occurred
+	 * @brief Creates the indexed column, if there is one
+	 * @param strColName
+	*/
+	void createIndex(const string& strColName)
+	{
+		if (colTypes.find(strColName) == colTypes.end())
+			throw invalid_argument("Cannot put Index on non existing column");
+
+		string type = colTypes.at(strColName);
+		int colPos = colIndex.at(strColName);
+
+		for (int index = 0; index <= curPageIndex; index++) {
+			ifstream in(path + tableName + "_" + to_string(index) + ".bin", std::ios::binary);
+
+			Page p(in);
+			for (int i = 0; i < p.size(); ++i)
+			{
+				Record r = p.get(i);
+				RecordPtr recordReference(index, i);
+				indexedColumnRecords.insert({ r.get(colPos), recordReference });
+			}
+
+			in.close();
+		}
+
+		saveTable();
+	}
+
+	/**
+	 *	@brief Create a page to hold records for this table.
+	 *	@return the created page
 	 */
 	Page createPage()
 	{
 		curPageIndex++;
-		Page p(maxTuplesPerPage, path + tableName + "_" + std::to_string(curPageIndex) + ".bin");
+		Page p(maxRecordsPerPage, path + tableName + "_" + std::to_string(curPageIndex) + ".bin");
 		saveTable();
 		return p;
 	}
 
 	/**
-	 * Check wether an object matches its specified type
-	 * @param value the object to be checked
-	 * @param type the object type to be matched
-	 * @return a boolean to indicate whether they match or not
+	 *	@brief Check wether an object matches its specified type (column type)
+	 *	@param value - the object to be checked
+	 *	@param type - the object type to be matched
+	 *	@return bool to indicate whether they match or not
 	 */
-	bool checkType(TypeWrapper value, string type) {
+	bool checkType(const TypeWrapper& value, const string& type) {
 
 		if (type == "Integer")
 			if (typeid(*value.getContent()) != typeid(IntegerObject))
@@ -117,417 +199,351 @@ private:
 		if (type == "String")
 			if (typeid(*value.getContent()) != typeid(StringObject))
 				return false;
+		if (type == "Double")
+			if (typeid(*value.getContent()) != typeid(DoubleObject))
+				return false;
 
 		return true;
 	}
 
-	///**
-// * check if the given referencing values are valid for query operations
-// * @param htblColNameValue some columns with there values
-// * @throws FileNotFoundException If an error occurred in the stored table file
-// * @throws DBEngineException If columns, foreign keys or the primary key are not valid
-// * @throws IOException If an I/O error occurred
-// * @throws ClassNotFoundException If an error occurred in the stored table pages format
-// */
-//void checkForeignKeyes(std::unordered_map<string, Object*> htblColNameValue)
-//{
-//	for (std::pair<string, Object*> entry : htblColNameValue) {
-//		string referencedColumn = colRefs.at(entry.first);
-
-//		if (referencedColumn != null)
-//		{
-//			String[] tokens = referencedColumn.split("\\.");
-//			//				TableName.colName
-//			String tableName = tokens[0];	//TableName
-//			String colName = tokens[1];		//colName
-
-//			ObjectInputStream ois = new ObjectInputStream(
-//				new FileInputStream(new File(path + "../" + tableName + "/" + tableName + ".class")));
-//			Table fetchedTable = (Table)ois.readObject();
-//			ois.close();
-//			if (!fetchedTable.checkRecordExists(colName, entry.getValue()))
-//				throw new DBEngineException("Invalid value for the foreign key: " + entry.getKey() + " = " + entry.getValue());
-//		}
-//	}
-//}
-
 	/**
-	 * create index on specified column name by creating BPTree on that column and inserting in it.
-	 * @param strColName The name of the column which index is created on
-	 */
-	void createIndex(string strColName)
-	{
-		string type = colTypes.at(strColName);
-		int colPos = colIndex.at(strColName);
-		BPTree<TypeWrapper> tree(indexOrder);
-
-		if (type == "Integer")
-			colNameIndex.insert({ strColName, tree });
-		if (type.equals("String"))
-			tree = new BPTree<String>(indexOrder);
-		if (type.equals("Date"))
-			tree = new BPTree<Date>(indexOrder);
-		if (type.equals("Double"))
-			tree = new BPTree<Double>(indexOrder);
-
-		colNameIndex.insert({ strColName, tree });
-
-		ObjectInputStream ois;
-		for (int index = 0; index <= curPageIndex; index++) {
-			File f = new File(path + tableName + "_" + index + ".class");
-
-			ois = new ObjectInputStream(new FileInputStream(f));
-			Page p = (Page)ois.readObject();
-			for (int i = 0; i < p.size(); ++i)
-			{
-				Record r = p.get(i);
-				Ref recordReference = new Ref(index, i);
-				tree.insert((Comparable)r.get(colPos), recordReference);
-			}
-			ois.close();
-		}
-		this.saveTable();
-	}
-
-	/**
-	 * insert record in table with specified column values.
+	 * @brief Insert record in table with specified column values.
 	 * @param htblColNameValue
-	 * @return a boolean to indicate a successful or failed insertion operation
-	 * @throws DBEngineException If columns, foreign keys or the primary key are not valid
-	 * @throws IOException If an I/O error occurred
-	 * @throws ClassNotFoundException If an error occurred in the stored table pages format
 	 */
-	bool insert(std::unordered_map<string, TypeWrapper> htblColNameValue)
+	void insert(unordered_map<string, TypeWrapper>& colNameValue)
 	{
+		checkColumns(colNameValue);
 
-		//		1. check column names and types
-		checkColumns(htblColNameValue);
+		if (!primaryKey.empty()) {
+			TypeWrapper primaryValue = colNameValue.at(primaryKey);
+			if (primaryValue.getContent() == nullptr)
+				throw invalid_argument("Primary key is not allowed to be empty");
 
-		//		2. check for primary key
-		TypeWrapper primaryValue = htblColNameValue.at(primaryKey);
-		if (primaryValue.getContent() == nullptr)
-			throw std::invalid_argument("Primary key is not allowed to be null");
-
-		if (checkRecordExists(primaryKey, primaryValue))
-			throw new DBEngineException("Primary key is already used before");
-
-
-		//		3. check the foreign keys
-		checkForeignKeyes(htblColNameValue);
-
-		//		4. add the record
-		Record r = new Record(numOfColumns);
-		Stack<String> indexedCol = new Stack<String>();
-		for (Entry<String, Object> entry : htblColNameValue.entrySet())
-		{
-			String colName = entry.getKey();
-			if (colNameIndex.containsKey(colName)) // index on that col.
-				indexedCol.push(colName);
-			Object value = entry.getValue();
-			r.addValue(colIndex.get(colName), value);
+			if (checkRecordExists(primaryKey, primaryValue))
+				throw invalid_argument("Primary key " + primaryKey + " is already used before");
 		}
-		r.addValue(colIndex.get("TouchDate"), (Date)Calendar.getInstance().getTime());
+
+		Record r(numOfColumns);
+		for (const pair<string, TypeWrapper>& entry : colNameValue)
+			r.addValue(entry.second);
+
 		Page page = addRecord(r);
-		while (!indexedCol.isEmpty())
-			colNameIndex.get(indexedCol.peek()).insert((Comparable)htblColNameValue.get(indexedCol.pop()), new Ref(curPageIndex, page.size() - 1));
-		//		System.out.println(colNameIndex.get(primaryKey));
-		this.saveTable();
-		return true;
-
-	}
-
-
-	/**
-	 * Update the record that has the specified primary key with the given set of values
-	 * @param strKey the primary key of the record to be updated
-	 * @param htblColNameValue the set of columns associated with the new values to be updated
-	 * @return a boolean indicating whether the update is successful or not
-	 * @throws DBEngineException if the primary key to be updated, however, it's already used
-	 * @throws ClassNotFoundException If an error occurred in the stored table pages format
-	 * @throws IOException If an I/O error occurred
-	 */
-	bool update(Object strKey, std::unordered_map<string, Object*> htblColNameValue)
-	{
-
-		//		1. check column names and types
-		checkColumns(htblColNameValue);
-
-		//		2. check for primary key
-		Object newPrimaryKey = htblColNameValue.get(primaryKey);
-		if (newPrimaryKey != null)
-		{
-			//check that the new primary key does not exist
-			if (checkRecordExists(primaryKey, newPrimaryKey))
-				throw new DBEngineException("Primary key is already used before");
-		}
-
-		//		3. check the foreign keys
-		checkForeignKeyes(htblColNameValue);
-		BPTree tree = this.colNameIndex.get(primaryKey);
-		Ref recordReference = tree.search((Comparable)strKey);
-		if (recordReference == null)
-			return false;
-		int pageNo = recordReference.getPage();
-		int indexInPage = recordReference.getIndexInPage();
-
-		ObjectInputStream ois;
-		File f = new File(path + tableName + "_" + pageNo + ".class");
-		ois = new ObjectInputStream(new FileInputStream(f));
-		Page p = (Page)ois.readObject();
-		Record r = p.get(indexInPage);
-
-		for (Entry <String, Integer> entry : this.colIndex.entrySet())
-		{
-			String colName = entry.getKey();
-			int index = entry.getValue();
-			if (this.colNameIndex.containsKey(colName) && htblColNameValue.containsKey(colName))
-			{
-				tree = this.colNameIndex.get(colName);
-				tree.delete((Comparable)r.get(index));
-			}
-		}
-		for (Entry<String, Object> entry : htblColNameValue.entrySet())
-		{
-			String colName = entry.getKey();
-			Object colValue = entry.getValue();
-			if (this.colNameIndex.containsKey(colName)) {
-				tree = colNameIndex.get(colName);
-				tree.insert((Comparable)colValue, recordReference);
-			}
-		}
-
-		this.saveTable();
-		ois.close();
-
-		return true;
+		indexedColumnRecords.insert({ colNameValue.at(primaryKey), RecordPtr(curPageIndex, page.size() - 1) });
+		saveTable();
 	}
 
 	/**
-	 * Add a new record to the table
-	 * @param record the record to be added
+	 *	@brief Add a new record to the table
+	 *	@param record - the record to be added
 	 */
-	Page addRecord(Record record)
+	Page addRecord(Record& record)
 	{
 		string pagePath = path + tableName + "_" + std::to_string(curPageIndex) + ".bin";
-		std::ifstream in(pagePath);
+		ifstream in(pagePath, std::ios::binary);
 		if (!in.is_open())
-			throw std::invalid_argument("Couldnt open page at path " + path + " for reading.");
+			throw std::invalid_argument("Couldnt open page at path " + pagePath + " for reading.");
 
-		Page curPage(0, pagePath);
-		curPage.load();
+		Page p(in);
+		if (p.isFull())
+			p = createPage();
 
-		if (curPage.isFull())
-			curPage = createPage();
-		curPage.addRecord(record);
+		p.addRecord(record);
+		bytes += record.getKiloBytesData();
 
 		in.close();
-		return curPage;
+		return p;
 	}
 
 	/**
-	 * Check if there exists a record, with the specified column value, in the table
-	 * @param colName the column to be looked at while searching
-	 * @param colValue the value to be matched
-	 * @return whether the record exists or not
+	 *	@brief Check if there is a record with the specified column value in the table
+	 *	@param colName the column to be looked for when searching
+	 *	@param colValue the value to be matched
+	 *	@return whether the record exists or not
 	 */
-	bool checkRecordExists(string colName, TypeWrapper colValue)
+	bool checkRecordExists(const string& colName, const TypeWrapper& colValue)
 	{
-		std::unordered_map<string, TypeWrapper> htbl = std::unordered_map<string, TypeWrapper>();
-		htbl[colName] = colValue;
-		Iterator<Record> itr = select(htbl, "AND");
-		if (itr.hasNext())
+		Query exp(colName + " = " + colValue.toString(), colTypes, primaryKey);
+		vector<Record> answer = select(exp);
+		if (!answer.empty())
 			return true;
 
 		return false;
 	}
 
 	/**
-	 * Check whether a given record matches any of the given column name-value pairs
-	 * @param htblColNameValue - the column name-value pairs against which the record is checked
-	 * @param record - the record to be checked
-	 * @return a boolean to indicate whether this record matches any of the pairs or not
-	 */
-	bool checkOr(std::unordered_map<string, TypeWrapper> htblColNameValue, Record record)
+	 * @brief In a vector of records, get the discinct ones and return them
+	 * @param target - vector which will be distinct-ized
+	 * @param selectedColumns - the columns that the user desries to be outputted
+	 * @return Vector of distinct-ized records
+	*/
+	vector<Record> distinct(vector<Record>& target, vector<string>& selectedColumns)
 	{
-		for (std::pair<string, TypeWrapper> entry : htblColNameValue)
+		for (const string& col : selectedColumns)
+			if (colIndex.find(col) == colIndex.end())
+				throw invalid_argument("Cannot call distinct on non existing column.");
+
+		vector<Record> res;
+		for (size_t i = 0; i < target.size(); i++)
 		{
-			string colName = entry.first;
-			TypeWrapper value = entry.second;
-
-			int index = colIndex.at(colName);
-			if (record.get(index).getContent() == value.getContent())
-				return true;
-		}
-		return false;
-	}
-
-	/**
-	 * Check whether a given record matches all the given column name-value pairs
-	 * @param htblColNameValue the column name-value pairs against which the record is checked
-	 * @param record the record to be checked
-	 * @return a boolean to indicate whether this record matches all the pairs or not
-	 */
-	bool checkAND(std::unordered_map<string, TypeWrapper> htblColNameValue, Record record)
-	{
-		for (std::pair<string, TypeWrapper> entry : htblColNameValue)
-		{
-			string colName = entry.first;
-			TypeWrapper value = entry.second;
-			int index = colIndex.at(colName);
-			if (record.get(index).getContent() != value.getContent())
-				return false;
-		}
-
-		return true;
-	}
-
-	/**
-	 * Select all records from the table that matches the specified column name-value pairs
-	 * with a given conditional operator (AND or OR)
-	 * @param htblColNameValue the column name-value pairs to which records will be compared
-	 * @param strOperator the conditional operator to be executed ("AND, "OR" only)
-	 * @return an iterator pointing to the first record in the result set
-	 * @throws IOException If an I/O error occurred
-	 * @throws ClassNotFoundException If an error occurred in the stored table pages format
-	 */
-	Iterator<Record> select(std::unordered_map<string, TypeWrapper> htblColNameValue, string strOperator)
-	{
-		bool isOr = strOperator == "OR";
-
-		//try to select using an index if it exists
-		Iterator<Record> itr = selectWithIndex(htblColNameValue, isOr);
-		if (itr != null)
-			return itr;
-
-
-		ObjectInputStream ois;
-		LinkedList<Record> answer = new LinkedList<Record>();
-
-		for (int index = 0; index <= curPageIndex; index++) {
-			File f = new File(path + tableName + "_" + index + ".class");
-
-			ois = new ObjectInputStream(new FileInputStream(f));
-			Page p = (Page)ois.readObject();
-			for (int i = 0; i < p.size(); ++i)
+			bool areEqual = true;
+			for (size_t j = 0; j < i; j++)
 			{
-				Record r = p.get(i);
+				if (i == j) continue;
 
-				if ((r != null && (isOr && checkOr(htblColNameValue, r) || !isOr && checkAND(htblColNameValue, r))))
-					answer.add(r);
+				for (size_t k = 0; k < selectedColumns.size(); k++)
+				{
+					if (target[i].get(colIndex[selectedColumns[k]]) != target[j].get(colIndex[selectedColumns[k]]))
+					{
+						areEqual = false;
+						break;
+					}
+				}
 			}
-			ois.close();
+
+			if (!areEqual)
+				res.push_back(target[i]);
 		}
-		return answer.listIterator();
+
+		return res;
 	}
 
-
-
 	/**
-	 * Select all records from the table that matches the specified column name-value pairs using index if exists .
-	 * @param htblColNameValue the column name-value pairs to which records will be compared
-	 * @param operator the conditional operator to be executed ("AND, "OR" only)
-	 * @return an iterator pointing to the first record in the result set
-	 */
-	Record& selectWithIndex(std::unordered_map<string, TypeWrapper> htblColNameValue, bool op)
+	 * @brief Given a vector of records, order them by the given column
+	 * @param target - vector to be sorted
+	 * @param orderByWhat - column by which the sorting will be made
+	*/
+	void orderBy(vector<Record>& target, const string& orderByWhat)
 	{
-		string indexColumn;
-		TypeWrapper indexValue;
-		for (std::pair<string, TypeWrapper> entry : htblColNameValue)
+		if (colIndex.find(orderByWhat) == colIndex.end())
+			throw invalid_argument("Cannot select a column that is not part of the scheme. (" + orderByWhat + ")");
+
+		heapSort(target, colIndex[orderByWhat]);
+	}
+
+	/**
+	 * @brief Selects records satisfying the WHERE criteria
+	 * @param colValueOperator - "ID > 5" col refers to "ID", Value refers to "5", operator refers to ">"
+	 * @return vector with filtered records
+	*/
+	vector<Record> select(Query& query)
+	{
+		stack<vector<Record>> result;
+		queue<string> output = query.getShuntingOutput();
+
+		while (!output.empty())
 		{
-			if (colNameIndex.find(entry.first) != colNameIndex.end())
+			if (sh::isStringInteger(output.front()))
 			{
-				indexColumn = entry.first;
-				indexValue = entry.second;
-				break;
+				InternalQuery curr = query.getNumberedQueries().at(output.front());
+				if (curr.isPrimaryKeyQuery())
+				{
+					vector<RecordPtr> fromTree = indexedColumnRecords.getRecordsFromQuery(curr);
+					if (!fromTree.empty())
+						result.push(fetchRecordsByReference(fromTree));
+					else
+						result.push(vector<Record>());
+				}
+				else
+				{
+					vector<Record> answer;
+					for (size_t index = 0; index <= curPageIndex; index++) {
+						ifstream in(path + tableName + "_" + to_string(index) + ".bin", std::ios::binary);
+
+						Page p(in);
+						for (size_t i = 0; i < p.size(); ++i)
+						{
+							Record r = p.get(i);
+							if (curr.checkRecordAgainstCondition(colIndex, r))
+								answer.push_back(r);
+						}
+						in.close();
+					}
+					result.push(answer);
+				}
+
+				output.pop();
+			}
+			else
+			{
+				vector<Record> val2 = result.top();
+				result.pop();
+
+				vector<Record> val1 = result.top();
+				result.pop();
+
+				string op = output.front();
+				output.pop();
+
+				// Intersection (AND)
+				if (op == "AND")
+				{
+					vector<Record> vec_intersection;
+					if (val2.size() > val1.size())
+						std::swap(val1, val2);
+
+					for (size_t i = 0; i < val2.size(); i++)
+						if (std::find(val1.begin(), val1.end(), val2[i]) != val1.end())
+							vec_intersection.push_back(val2[i]);
+
+					result.push(vec_intersection);
+				}
+				// Union (OR)
+				else
+				{
+					map<Record, int> mp;
+					vector<Record> vec_union;
+
+					// Inserting array elements in mp
+					for (int i = 0; i < val2.size(); i++)
+						mp.insert({ val2[i], i });
+
+					for (int i = 0; i < val1.size(); i++)
+						mp.insert({ val1[i], i });
+
+					for (const pair<Record, int>& entry : mp)
+						vec_union.push_back(entry.first);
+
+					result.push(vec_union);
+				}
 			}
 		}
 
-		if (indexColumn.empty())
-			throw std::invalid_argument("Such column wasn't found");
-
-		LinkedList<Record> answer;
-		BPTree tree = colNameIndex.get(indexColumn);
-		Ref recordReference = tree.search((Comparable)indexValue);
-		Record r = fetchRecordByReference(recordReference);
-		if ((r != null && (operator && checkOr(htblColNameValue, r) || !operator && checkAND(htblColNameValue, r))))
-			answer.add(r);
-		return answer.listIterator();
+		return result.top();
 	}
+
 	/**
-	 * @param recordReference reference to where the record is located in which page and in which index in that page
+	 * @brief Acts just like select with given query, but can also pass arguments wheter to sort it by
+	 * given column or/and to get only the distinct elements
+	 * @param query - WHERE clause
+	 * @param orderByWhat - by which column shall the sorting be done
+	 * @param isDistinct - if True then the answer shall not contain any duplicates of the selected columns
+	 * @param selectedCols - columns that the user is selecting
+	 * @return array of selected records
+	*/
+	vector<Record> select(Query& query, const string& orderByWhat, bool isDistinct, vector<string>& selectedCols)
+	{
+		vector<Record> answer = select(query);
+
+		if (isDistinct)
+			answer = distinct(answer, selectedCols);
+		if (!orderByWhat.empty())
+			orderBy(answer, orderByWhat);
+
+		return answer;
+	}
+
+	/**
+	 * @param recordReference - a tuple holding info about the index of the page that contains the record, and the record's id in the page
 	 * @return record in the specified reference.
-	 * @throws IOException If an I/O error occurred
-	 * @throws ClassNotFoundException If an error occurred in the stored table pages format
-	 * @throws FileNotFoundException If an error occurred in the stored table file
 	 */
-	Record fetchRecordByReference(Ref recordReference)
+	Record fetchRecordByReference(RecordPtr& recordReference)
 	{
-
-		if (recordReference == null)
-			return null;
-		File f = new File(path + tableName + "_" + recordReference.getPage() + ".class");
-		ObjectInputStream ois = new ObjectInputStream(new FileInputStream(f));
-		Page p = (Page)ois.readObject();
+		string readPath = path + tableName + "_" + to_string(recordReference.getPage()) + ".bin";
+		ifstream in(readPath, std::ios::binary);
+		Page p(in);
 		Record r = p.get(recordReference.getIndexInPage());
-		ois.close();
+		in.close();
 		return r;
 	}
 
-	/** delete all records from the table that matches the specified column name-value pairs
-	 * with a given conditional operator (AND or OR)
-	 * @param htblColNameValue the column name-value pairs to which records will be compared
-	 * @param strOperator the conditional operator to be exectuted ("AND, "OR" only)
-	 * @throws IOException If an I/O error occurred
-	 * @throws ClassNotFoundException If an error occurred in the stored table pages format
-	 */
-
-	int deleteRecord(std::unordered_map<string, Object> htblColNameValue, string strOperator)
+	/**
+	 * @brief Given vector of pointers to records, fetch them all
+	 * @param recordsReferences - vector of record pointers
+	 * @return the records pointed to by record pointers
+	*/
+	vector<Record> fetchRecordsByReference(vector<RecordPtr>& recordsReferences)
 	{
-		boolean isOr = strOperator.equals("OR");
+		vector<Record> res;
+
+		// Sort refs by page in ascending order, then by index in page in ascending order
+		for (size_t i = 0; i < recordsReferences.size() - 1; i++)
+		{
+			size_t min = i;
+			for (size_t j = i + 1; j < recordsReferences.size(); j++)
+				if (recordsReferences[j] < recordsReferences[min])
+					min = j;
+
+			std::swap(recordsReferences[min], recordsReferences[i]);
+		}
+
+		// Whisk through the pages, first opening the one with index 0, then 1, then 2...
+		// and extracting the needed records. Prioritizes extracting the records from the current page, then the next, without
+		// having to reopen on every iteration for every record
+		for (size_t i = 0; i < recordsReferences.size(); i++)
+		{
+			string readPath = path + tableName + "_" + to_string(recordsReferences[i].getPage()) + ".bin";
+			ifstream in(readPath, std::ios::binary);
+			Page p(in);
+
+			if (i < recordsReferences.size() - 1 && recordsReferences[i].getPage() != recordsReferences[i + 1].getPage())
+			{
+				res.push_back(p.get(recordsReferences[i].getIndexInPage()));
+			}
+			else
+			{
+				while (i < recordsReferences.size() - 1 && recordsReferences[i].getPage() == recordsReferences[i + 1].getPage())
+				{
+					res.push_back(p.get(recordsReferences[i].getIndexInPage()));
+					i++;
+				}
+			}
+
+			if (i == recordsReferences.size() - 1)
+				res.push_back(p.get(recordsReferences[i].getIndexInPage()));
+
+			in.close();
+		}
+
+		return res;
+	}
+
+	/** @brief Delete the records that satisfy the WHERE clause
+	 *	@param strOperator the conditional operator to be exectuted ("AND, "OR" only)
+	 */
+	int deleteRecord(Query& query)
+	{
 		int deletedRecords = 0;
-		ObjectInputStream ois;
-		for (int index = 0; index <= curPageIndex; index++) {
-			File file = new File(path + tableName + "_" + index + ".class");
-			ois = new ObjectInputStream(new FileInputStream(file));
-			Page page = (Page)ois.readObject();
-			for (int i = 0; i < page.size(); i++) {
+		for (size_t index = 0; index <= curPageIndex; index++)
+		{
+			ifstream in(path + tableName + "_" + to_string(index) + ".bin", std::ios::binary);
+			Page page(in);
+			for (size_t i = 0; i < page.size(); i++)
+			{
 				Record r = page.get(i);
-				if (isOr && checkOr(htblColNameValue, r) || !isOr && checkAND(htblColNameValue, r)) {
+				if (query.checkRecordAgainstQuery(r, colIndex))
+				{
+					bytes -= r.getKiloBytesData();
 					page.removeRecord(i);
 					deleteRecord(r);
 					deletedRecords++;
 				}
 			}
-
 		}
-		this.saveTable();
+
+		saveTable();
 		return deletedRecords;
 	}
+
 	/**
-	 * deleting specified record columns' values from corresponding BPTrees if exist.
-	 * @param record
+	 *	@brief deleting record column value from map if the value exists.
+	 *	@param record - record that will be deleted
 	 */
-	void deleteRecord(Record record)
+	void deleteRecord(Record& record)
 	{
-		for (Entry<String, Integer> entry : this.colIndex.entrySet())
+		if (!primaryKey.empty())
 		{
-			String colName = entry.getKey();
-			int colIndex = entry.getValue();
-			if (this.colNameIndex.containsKey(colName))
-			{
-				BPTree tree = this.colNameIndex.get(colName);
-				tree.delete((Comparable)record.get(colIndex));
-			}
+			int col = colIndex[primaryKey];
+			indexedColumnRecords.remove(record.get(col));
 		}
 	}
 
 	/**
-	 * Check that all specified columns are in the table schema and matches the defined types
-	 * @param htblColNameValue some columns to be checked against the table schema
+	 *	@brief Check that all specified columns are in the table schema and matches the defined types
+	 *	@param htblColNameValue some columns to be checked against the table schema
 	 */
 	void checkColumns(std::unordered_map<string, TypeWrapper> htblColNameValue)
 	{
-		for (std::pair<string, TypeWrapper> entry : htblColNameValue)
+		for (const pair<string, TypeWrapper>& entry : htblColNameValue)
 		{
 			string colName = entry.first;
 			if (colTypes.find(colName) == colTypes.end())
@@ -538,12 +554,29 @@ private:
 		}
 	}
 
+	const string& getTableHeader() const { return tableHeader; }
+
+	const string& getTablePath() const { return path; }
+
+	long getKiloBytesData() const { return bytes / 1024; }
+
+	const unordered_map<string, string>& getTableScheme() const { return colTypes; }
+
+	const unordered_map<string, size_t>& getColIndex() const { return colIndex; }
+
+	const string& getPrimaryKey() const { return primaryKey; }
+
+	size_t getColumnsCount() const { return numOfColumns; }
+
+private:
 	/**
-	 * Get the column names in the order the are indexed
-	 * @return the header of the table
+	 *	@brief Table instance controls pages that contain the stored records on the hard disk.
+	 *	All read and write operations are done in this class.
 	 */
-	string getTableHeader()
-	{
-		return tableHeader;
-	}
+	long bytes;
+	int maxRecordsPerPage, curPageIndex, numOfColumns;
+	string path, tableName, tableHeader, primaryKey;
+	unordered_map<string, string> colTypes;
+	unordered_map<string, size_t> colIndex;
+	BPTree indexedColumnRecords;
 };

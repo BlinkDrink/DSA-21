@@ -28,19 +28,61 @@
     <Filter Include="Header Files\BPTree">
       <UniqueIdentifier>{9b12e831-eb69-4da1-a645-460f0a3e956a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Helper">
+      <UniqueIdentifier>{c8d04dc4-cd14-4a99-87a6-72ba4f6b82d4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Table">
+      <UniqueIdentifier>{6404e1f9-7cbb-4255-8812-95f1fb515b79}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Types">
+      <UniqueIdentifier>{b1655965-3a60-48bf-b288-d1b8b9e1b2c9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Page">
+      <UniqueIdentifier>{d032816c-5f3b-4da5-a3aa-ddeb95e56744}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Record">
+      <UniqueIdentifier>{3344cd61-7107-4d50-9fb5-a81fb76b12d2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\DataBase">
+      <UniqueIdentifier>{9ed6e716-aa15-4177-adf9-99566ab1437a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\enums">
+      <UniqueIdentifier>{29c33282-a6df-4e87-a77e-36f98a6f7f31}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Engine">
+      <UniqueIdentifier>{b8b5393f-3849-4fa3-848c-92855d068a28}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Engine">
+      <UniqueIdentifier>{3a5b3596-35f3-4cbc-b2d2-3bb26015aaf2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Helper">
+      <UniqueIdentifier>{143ce9d7-9458-45b6-90ec-99238903d9d6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\DataBase">
+      <UniqueIdentifier>{e10dbccb-a569-47ab-b477-a6ed31483426}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Helper\CommandParser">
+      <UniqueIdentifier>{68163f85-ac85-4887-b446-971cc21d9908}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Helper\Query">
+      <UniqueIdentifier>{42bb47ca-1b02-4253-b11f-e83ffa6feab1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="DataBase.cpp">
+      <Filter>Source Files\DataBase</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="SortingHelper.cpp">
+      <Filter>Source Files\Helper</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="HashMap.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="DataBase.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Record.hpp">
       <Filter>Header Files\Record</Filter>
     </ClInclude>
@@ -59,20 +101,53 @@
     <ClInclude Include="Table.hpp">
       <Filter>Header Files\Table</Filter>
     </ClInclude>
-    <ClInclude Include="ObjectType.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="TypeWrapper.hpp">
       <Filter>Header Files\Types</Filter>
-    </ClInclude>
-    <ClInclude Include="RecordPtr.hpp">
-      <Filter>Header Files\BPTree</Filter>
     </ClInclude>
     <ClInclude Include="BPTree.hpp">
       <Filter>Header Files\BPTree</Filter>
     </ClInclude>
-    <ClInclude Include="test.hpp">
+    <ClInclude Include="FileHelper.hpp">
+      <Filter>Header Files\Helper</Filter>
+    </ClInclude>
+    <ClInclude Include="StringHelper.hpp">
+      <Filter>Header Files\Helper</Filter>
+    </ClInclude>
+    <ClInclude Include="termcolor.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ObjectType.h">
+      <Filter>Header Files\enums</Filter>
+    </ClInclude>
+    <ClInclude Include="Operator.h">
+      <Filter>Header Files\enums</Filter>
+    </ClInclude>
+    <ClInclude Include="QueryType.h">
+      <Filter>Header Files\enums</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandType.h">
+      <Filter>Header Files\enums</Filter>
+    </ClInclude>
+    <ClInclude Include="SortingHelper.h">
+      <Filter>Header Files\Helper</Filter>
+    </ClInclude>
+    <ClInclude Include="DoubleObject.hpp">
+      <Filter>Header Files\Types</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine.h">
+      <Filter>Header Files\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="DataBase.h">
+      <Filter>Header Files\DataBase</Filter>
+    </ClInclude>
+    <ClInclude Include="RecordPtr.hpp">
       <Filter>Header Files\BPTree</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandParser.hpp">
+      <Filter>Header Files\Helper\CommandParser</Filter>
+    </ClInclude>
+    <ClInclude Include="Query.hpp">
+      <Filter>Header Files\Helper\Query</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
