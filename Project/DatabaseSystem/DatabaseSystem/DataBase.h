@@ -16,7 +16,7 @@ public:
 	 * @param primaryKey - the name of the indexed column
 	 * @param maxRecordsPerPage - how many records we can keep in a page
 	*/
-	void createTable(const string& path, const string& tableName, unordered_map<string, string>& colNameType, const string primaryKey = "", int maxRecordsPerPage = 1024);
+	void createTable(const string& path, const string& tableName, unordered_map<string, string>& colNameType, vector<string>& colNames, const string primaryKey = "", int maxRecordsPerPage = 1024);
 
 	/**
 	 * @brief Attempts to drop a table with given name, removing it from fTables and deleting the binary file of the table on the disk
@@ -30,6 +30,8 @@ public:
 	 * @param colNameValueList - array of hashtables where against each column we have the value that is corresponding to the column
 	*/
 	void insert(const string& tableName, vector<unordered_map<string, TypeWrapper>> colNameValueList);
+
+	int remove(const string& tableName, Query& query);
 
 	/**
 	 * @return the number of tables in the database
@@ -46,8 +48,11 @@ public:
 	*/
 	Table& getTable(const string& name);
 
-private:
+	/**
+	 * @brief Saves the metadata of Database object to binary file
+	*/
 	void save() const;
+private:
 
 	void createDirectory() const;
 

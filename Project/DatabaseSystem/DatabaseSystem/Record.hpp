@@ -12,16 +12,18 @@ class Record {
 	 * an array of values.
 	 */
 private:
+	bool fIsInvalidated;
 	vector<TypeWrapper> fValues;
-	size_t columns;
+	size_t fColumns;
 
 public:
-	Record() :columns(0) {}
+	Record() :fColumns(0), fIsInvalidated(false) {}
 
 	Record(std::ifstream& in)
 	{
-		in.read((char*)&columns, sizeof(columns));
-		for (size_t i = 0; i < columns; i++)
+		in.read((char*)&fIsInvalidated, sizeof(fIsInvalidated));
+		in.read((char*)&fColumns, sizeof(fColumns));
+		for (size_t i = 0; i < fColumns; i++)
 			fValues.push_back(TypeWrapper(in));
 	}
 
@@ -29,7 +31,7 @@ public:
 	 * @brief Creates a new record
 	 * @param size number of columns of the table holding the record
 	 */
-	Record(size_t size) : columns(size)
+	Record(size_t size) : fColumns(size), fIsInvalidated(false)
 	{
 		this->fValues.reserve(size);
 	}
@@ -41,7 +43,7 @@ public:
 	 */
 	void addValue(const TypeWrapper& value)
 	{
-		if (fValues.size() + 1 > columns)
+		if (fValues.size() + 1 > fColumns)
 			throw std::out_of_range("Record addValue(value) - maximum properties for this record reached");
 
 		fValues.push_back(value);
@@ -66,10 +68,25 @@ public:
 	 */
 	void write(ofstream& out) const
 	{
-		out.write((char*)&columns, sizeof(columns));
+		out.write((char*)&fIsInvalidated, sizeof(fIsInvalidated));
+		out.write((char*)&fColumns, sizeof(fColumns));
 		for (size_t i = 0; i < fValues.size(); i++)
 			fValues[i].write(out);
 	}
+
+	/**
+	 * @brief Used when deleting a record, setting its invaldation state to true
+	 * Because when remove operation is done in the Page class in real time, simply erasing the element is not enough
+	 * because the order and indexation of elements in the vector fValues gets mismatched.
+	*/
+	void invalidateRecord()
+	{
+		fIsInvalidated = true;
+		fValues.clear();
+		fColumns = 0;
+	}
+
+	bool isInvalid() const { return fIsInvalidated; }
 
 	size_t getKiloBytesData() const
 	{
@@ -82,10 +99,10 @@ public:
 
 	bool operator==(const Record& other) const
 	{
-		if (other.columns != columns)
+		if (other.fColumns != fColumns)
 			return false;
 
-		for (size_t i = 0; i < columns; i++)
+		for (size_t i = 0; i < fColumns; i++)
 			if (fValues[i] != other.fValues[i])
 				return false;
 
@@ -94,10 +111,10 @@ public:
 
 	bool operator<(const Record& other) const
 	{
-		if (other.columns != columns)
+		if (other.fColumns != fColumns)
 			return false;
 
-		for (size_t i = 0; i < columns; i++)
+		for (size_t i = 0; i < fColumns; i++)
 			if (fValues[i] >= other.fValues[i])
 				return false;
 
@@ -106,10 +123,10 @@ public:
 
 	bool operator>(const Record& other) const
 	{
-		if (other.columns != columns)
+		if (other.fColumns != fColumns)
 			return false;
 
-		for (size_t i = 0; i < columns; i++)
+		for (size_t i = 0; i < fColumns; i++)
 			if (fValues[i] <= other.fValues[i])
 				return false;
 
@@ -120,7 +137,7 @@ public:
 	 *	@brief Getter
 	 *	@return the number of columns of this record
 	 */
-	size_t size() const { return this->columns; }
+	size_t size() const { return this->fColumns; }
 
 	/**
 	 * Display the record values

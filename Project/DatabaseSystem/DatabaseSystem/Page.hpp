@@ -82,7 +82,7 @@ public:
 	 */
 	void removeRecord(size_t index)
 	{
-		records.erase(records.begin() + index);
+		records[index].invalidateRecord();
 		save();
 	}
 

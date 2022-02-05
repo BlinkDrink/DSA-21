@@ -41,7 +41,7 @@ public:
 	 * @param strKeyColName the primary key of the table
 	 * @param maxTuplesPerPage the maximum number of records a page can hold
 	 */
-	Table(const string& path, const string& tableName, unordered_map<string, string>& colNameType,
+	Table(const string& path, const string& tableName, unordered_map<string, string>& colNameType, vector<string>& colNames,
 		const string& indexedColName, int maxRecordsPerPage)
 	{
 		this->path = path + tableName + "/";
@@ -53,10 +53,12 @@ public:
 		this->numOfColumns = 0;
 		this->bytes = 0;
 
-		initializeColumnsIndexes();
+		for (const string& name : colNames)
+			tableHeader += name + ",";
+
+		initializeColumnsIndexes(colNames);
 		createDirectory();
 		createPage();
-
 		if (!primaryKey.empty())
 			createIndex(primaryKey);
 
@@ -76,6 +78,7 @@ public:
 		fh::readString(in, path);
 		fh::readString(in, tableName);
 		fh::readString(in, primaryKey);
+		fh::readString(in, tableHeader);
 
 		size_t colTypesSize = 0;
 		in.read((char*)&colTypesSize, sizeof(colTypesSize));
@@ -87,9 +90,12 @@ public:
 			colTypes.insert({ first, second });
 		}
 
-		indexedColumnRecords = BPTree(in);
+		if (!primaryKey.empty())
+			indexedColumnRecords = BPTree(in);
 
-		initializeColumnsIndexes();
+		vector<string> header = sh::splitBy(tableHeader, ",");
+		sh::removeEmptyStringsInVector(header);
+		initializeColumnsIndexes(header);
 	}
 
 	/**
@@ -108,6 +114,7 @@ public:
 		fh::writeString(out, path);
 		fh::writeString(out, tableName);
 		fh::writeString(out, primaryKey);
+		fh::writeString(out, tableHeader);
 
 		size_t colTypesSize = colTypes.size();
 		out.write((char*)&colTypesSize, sizeof(colTypesSize));
@@ -117,7 +124,8 @@ public:
 			fh::writeString(out, entry.second);
 		}
 
-		indexedColumnRecords.write(out);
+		if (!primaryKey.empty())
+			indexedColumnRecords.write(out);
 
 		out.close();
 	}
@@ -125,19 +133,16 @@ public:
 	/**
 	 *	@brief Map every table column to an index
 	 */
-	void initializeColumnsIndexes() {
+	void initializeColumnsIndexes(vector<string>& colNames) {
 		int index = 0;
-		for (pair<string, string> entry : colTypes)
-		{
-			colIndex.insert({ entry.first, index++ });
-			tableHeader += entry.first + ", ";
-		}
-		numOfColumns = colTypes.size();
+		for (const string& colName : colNames)
+			colIndex.insert({ colName, index++ });
+
+		numOfColumns = colNames.size();
 	}
 
 	/**
-	 *	@brief Create a directory for the table in which the table's properties
-	 *	and table's pages are stored.
+	 *	@brief Create a directory for the table in which the table's metadata and records are stored
 	 */
 	void createDirectory()
 	{
@@ -163,6 +168,9 @@ public:
 			for (int i = 0; i < p.size(); ++i)
 			{
 				Record r = p.get(i);
+				if (r.isInvalid())
+					continue;
+
 				RecordPtr recordReference(index, i);
 				indexedColumnRecords.insert({ r.get(colPos), recordReference });
 			}
@@ -224,11 +232,16 @@ public:
 		}
 
 		Record r(numOfColumns);
-		for (const pair<string, TypeWrapper>& entry : colNameValue)
-			r.addValue(entry.second);
+		vector<string> header = sh::splitBy(tableHeader, ",");
+		sh::removeEmptyStringsInVector(header);
+		for (const string& entry : header)
+			r.addValue(colNameValue[entry]);
 
 		Page page = addRecord(r);
-		indexedColumnRecords.insert({ colNameValue.at(primaryKey), RecordPtr(curPageIndex, page.size() - 1) });
+
+		if (!primaryKey.empty())
+			indexedColumnRecords.insert({ colNameValue.at(primaryKey), RecordPtr(curPageIndex, page.size() - 1) });
+
 		saveTable();
 	}
 
@@ -285,18 +298,20 @@ public:
 		vector<Record> res;
 		for (size_t i = 0; i < target.size(); i++)
 		{
-			bool areEqual = true;
-			for (size_t j = 0; j < i; j++)
+			bool areEqual = false;
+			for (size_t j = i; j < target.size(); j++)
 			{
 				if (i == j) continue;
 
+				bool areColsEqual = true;
 				for (size_t k = 0; k < selectedColumns.size(); k++)
-				{
 					if (target[i].get(colIndex[selectedColumns[k]]) != target[j].get(colIndex[selectedColumns[k]]))
-					{
-						areEqual = false;
-						break;
-					}
+						areColsEqual = false;
+
+				if (areColsEqual)
+				{
+					areEqual = areColsEqual;
+					break;
 				}
 			}
 
@@ -353,8 +368,9 @@ public:
 						for (size_t i = 0; i < p.size(); ++i)
 						{
 							Record r = p.get(i);
-							if (curr.checkRecordAgainstCondition(colIndex, r))
-								answer.push_back(r);
+							if (!r.isInvalid())
+								if (curr.checkRecordAgainstCondition(colIndex, r))
+									answer.push_back(r);
 						}
 						in.close();
 					}
@@ -391,9 +407,15 @@ public:
 				else
 				{
 					vector<Record> vec_union;
-					std::sort(val1.begin(), val1.end());
-					std::sort(val2.begin(), val2.end());
-					std::set_union(val1.begin(), val1.end(), val2.begin(), val2.end(), std::back_inserter(vec_union));
+
+					for (Record& r : val1)
+						if (std::find(vec_union.begin(), vec_union.end(), r) == vec_union.end())
+							vec_union.push_back(r);
+
+					for (Record& r : val2)
+						if (std::find(vec_union.begin(), vec_union.end(), r) == vec_union.end())
+							vec_union.push_back(r);
+
 					result.push(vec_union);
 				}
 			}
@@ -427,7 +449,8 @@ public:
 				for (size_t i = 0; i < p.size(); ++i)
 				{
 					Record r = p.get(i);
-					answer.push_back(r);
+					if (!r.isInvalid())
+						answer.push_back(r);
 				}
 				in.close();
 			}
@@ -483,22 +506,27 @@ public:
 			string readPath = path + tableName + "_" + to_string(recordsReferences[i].getPage()) + ".bin";
 			ifstream in(readPath, std::ios::binary);
 			Page p(in);
+			Record r = p.get(recordsReferences[i].getIndexInPage());
 
 			if (i < recordsReferences.size() - 1 && recordsReferences[i].getPage() != recordsReferences[i + 1].getPage())
 			{
-				res.push_back(p.get(recordsReferences[i].getIndexInPage()));
+				if (!p.get(recordsReferences[i].getIndexInPage()).isInvalid())
+					res.push_back(p.get(recordsReferences[i].getIndexInPage()));
 			}
 			else
 			{
 				while (i < recordsReferences.size() - 1 && recordsReferences[i].getPage() == recordsReferences[i + 1].getPage())
 				{
-					res.push_back(p.get(recordsReferences[i].getIndexInPage()));
+					if (!p.get(recordsReferences[i].getIndexInPage()).isInvalid())
+						res.push_back(p.get(recordsReferences[i].getIndexInPage()));
+
 					i++;
 				}
 			}
 
 			if (i == recordsReferences.size() - 1)
-				res.push_back(p.get(recordsReferences[i].getIndexInPage()));
+				if (!p.get(recordsReferences[i].getIndexInPage()).isInvalid())
+					res.push_back(p.get(recordsReferences[i].getIndexInPage()));
 
 			in.close();
 		}
@@ -506,25 +534,51 @@ public:
 		return res;
 	}
 
-	/** @brief Delete the records that satisfy the WHERE clause
-	 *	@param strOperator the conditional operator to be exectuted ("AND, "OR" only)
-	 */
+	/**
+	 * @brief Deletes all the records satisfying the where criteria
+	 * @param query - query containing the where conditions
+	 * @return the number of deleted records in the table
+	*/
 	int deleteRecord(Query& query)
 	{
 		int deletedRecords = 0;
-		for (size_t index = 0; index <= curPageIndex; index++)
+		if (!query.getShuntingOutput().empty())
 		{
-			ifstream in(path + tableName + "_" + to_string(index) + ".bin", std::ios::binary);
-			Page page(in);
-			for (size_t i = 0; i < page.size(); i++)
+			if (!primaryKey.empty())
 			{
-				Record r = page.get(i);
-				if (query.checkRecordAgainstQuery(r, colIndex))
+				vector<Record> answer = select(query);
+				for (size_t i = 0; i < answer.size(); i++)
 				{
+					Record r = answer[i];
+					if (r.isInvalid())
+						continue;
+					RecordPtr rPtr = indexedColumnRecords.getRecordAtIndex(r.get(colIndex[primaryKey]));
+					ifstream in(path + tableName + "_" + to_string(rPtr.getPage()) + ".bin", std::ios::binary);
+					Page p(in);
 					bytes -= r.getKiloBytesData();
-					page.removeRecord(i);
+					p.removeRecord(rPtr.getIndexInPage());
 					deleteRecord(r);
 					deletedRecords++;
+					in.close();
+				}
+			}
+			else
+			{
+				for (size_t index = 0; index <= curPageIndex; index++)
+				{
+					ifstream in(path + tableName + "_" + to_string(index) + ".bin", std::ios::binary);
+					Page page(in);
+					for (size_t i = 0; i < page.size(); i++)
+					{
+						Record r = page.get(i);
+						if (query.checkRecordAgainstQuery(r, colIndex))
+						{
+							bytes -= r.getKiloBytesData();
+							page.removeRecord(i);
+							deleteRecord(r);
+							deletedRecords++;
+						}
+					}
 				}
 			}
 		}
@@ -534,9 +588,9 @@ public:
 	}
 
 	/**
-	 *	@brief deleting record column value from map if the value exists.
-	 *	@param record - record that will be deleted
-	 */
+	 * @brief Deletes the given record from the BPTree if the table has primary key
+	 * @param record - record that is to be deleted from the tree
+	*/
 	void deleteRecord(Record& record)
 	{
 		if (!primaryKey.empty())
@@ -567,7 +621,7 @@ public:
 
 	const string& getTablePath() const { return path; }
 
-	long getKiloBytesData() const { return bytes / 1024; }
+	long getBytesData() const { return bytes; }
 
 	const unordered_map<string, string>& getTableScheme() const { return colTypes; }
 

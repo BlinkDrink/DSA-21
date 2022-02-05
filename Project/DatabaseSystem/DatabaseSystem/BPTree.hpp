@@ -11,7 +11,7 @@ using std::pair;
 using std::vector;
 using data = pair<TypeWrapper, RecordPtr>;
 
-#define DEFAULT_ORDER 10
+#define DEFAULT_ORDER 5
 
 // BP node
 class Node {
@@ -42,15 +42,15 @@ public:
 // BP tree
 class BPTree {
 public:
-	BPTree() : root(nullptr), fOrder(DEFAULT_ORDER), size(0) {}
+	BPTree() : root(nullptr), fOrder(DEFAULT_ORDER), fSize(0) {}
 
-	BPTree(int order) : root(nullptr), fOrder(order), size(0) {}
+	BPTree(int order) : root(nullptr), fOrder(order), fSize(0) {}
 
 	BPTree(const BPTree& other)
 	{
 		this->root = copy(other.root);
 		this->fOrder = other.fOrder;
-		this->size = other.size;
+		this->fSize = other.fSize;
 	}
 
 	BPTree& operator=(const BPTree& other)
@@ -58,7 +58,7 @@ public:
 		if (this != &other)
 		{
 			clear(root);
-			if (other.size != 0)
+			if (other.fSize != 0)
 				root = copy(other.root);
 		}
 
@@ -68,7 +68,7 @@ public:
 	BPTree(BPTree&& other) noexcept : BPTree()
 	{
 		std::swap(fOrder, other.fOrder);
-		std::swap(size, other.size);
+		std::swap(fSize, other.fSize);
 		std::swap(root, other.root);
 	}
 
@@ -77,7 +77,7 @@ public:
 		if (this != &other)
 		{
 			std::swap(fOrder, other.fOrder);
-			std::swap(size, other.size);
+			std::swap(fSize, other.fSize);
 			std::swap(root, other.root);
 		}
 
@@ -88,15 +88,21 @@ public:
 	{
 		root = nullptr;
 		in.read((char*)&fOrder, sizeof(fOrder));
-		in.read((char*)&size, sizeof(size));
-		size_t tmpSize = size;
+		in.read((char*)&fSize, sizeof(fSize));
+		size_t tmpSize = fSize;
 		for (size_t i = 0; i < tmpSize; i++)
 			this->insert({ TypeWrapper(in), RecordPtr(in) });
 
-		size = tmpSize;
+		fSize = tmpSize;
 	}
 
-	~BPTree() { clear(root); size = 0; }
+	~BPTree() { clear(root); fSize = 0; }
+
+	RecordPtr getRecordAtIndex(const TypeWrapper& key)
+	{
+		Node* target = search(key);
+		return target->fKeys[target->keyIndex(key)].second;
+	}
 
 	/**
 	 * @brief Searches the tree for given key
@@ -196,7 +202,7 @@ public:
 				}
 			}
 		}
-		size++;
+		fSize++;
 	}
 
 	/**
@@ -259,7 +265,7 @@ public:
 
 		// erase the key from the node's keys
 		cursor->fKeys.erase(cursor->fKeys.begin() + pos);
-		size--;
+		fSize--;
 
 		// in case we are deleting the only element in the tree, just delete the tree itself
 		if (cursor == root)
@@ -280,7 +286,8 @@ public:
 		cursor->ptr[cursor->fKeys.size()] = cursor->ptr[cursor->fKeys.size() + 1];
 		cursor->ptr[cursor->fKeys.size() + 1] = nullptr;
 
-		if (cursor->fKeys.size() >= (fOrder + 1) / 2) {
+		if (cursor->fKeys.size() >= (fOrder + 1) / 2 - 1 /*delete -1*/)
+		{
 			deleteIndex(key, parent);
 			return;
 		}
@@ -289,7 +296,7 @@ public:
 		if (leftSibling >= 0)
 		{
 			Node* leftNode = parent->ptr[leftSibling];
-			if (leftNode->fKeys.size() >= (fOrder + 1) / 2 + 1)
+			if (leftNode->fKeys.size() >= (fOrder + 1) / 2 /*+ 1*/)
 			{
 				// take the last element from left sibling and insert it in cursor's start + readjust pointer to point to next leaf
 				cursor->fKeys.insert(cursor->fKeys.begin(), leftNode->fKeys.back());
@@ -310,10 +317,10 @@ public:
 		if (rightSibling <= parent->fKeys.size())
 		{
 			Node* rightNode = parent->ptr[rightSibling];
-			if (rightNode->fKeys.size() >= (fOrder + 1) / 2 + 1)
+			if (rightNode->fKeys.size() >= (fOrder + 1) / 2 /*+ 1*/)
 			{
 				// Borrow key from right sibling and readjust pointers
-				cursor->fKeys.insert(cursor->fKeys.end() - 1, rightNode->fKeys[0]);
+				cursor->fKeys.push_back(rightNode->fKeys[0]);
 				cursor->ptr[cursor->fKeys.size()] = cursor->ptr[cursor->fKeys.size() - 1];
 				cursor->ptr[cursor->fKeys.size() - 1] = nullptr;
 
@@ -496,6 +503,8 @@ public:
 		return root;
 	}
 
+	size_t size() const { return this->fSize; }
+
 	/**
 	 * @brief Write the tree to file, just the elements in root-left-right way
 	 * @param out - output stream
@@ -504,13 +513,13 @@ public:
 	{
 		set<TypeWrapper> visited;
 		out.write((char*)&fOrder, sizeof(fOrder));
-		out.write((char*)&size, sizeof(size));
+		out.write((char*)&fSize, sizeof(fSize));
 		writeRec(root, out, visited);
 	}
 
 private:
 	int fOrder;
-	size_t size;
+	size_t fSize;
 	Node* root;
 
 	/**
@@ -593,7 +602,7 @@ private:
 	*/
 	Node* findParent(Node* root, Node* child)
 	{
-		if (child == root)
+		if (child == root || root == nullptr)
 			return nullptr;
 
 		Node* parent = nullptr;
@@ -711,7 +720,12 @@ private:
 
 		// shift pointers one to the left so we "eat" the child that is to be deleted
 		for (int i = pos; i < cursor->fKeys.size() + 1; i++)
-			cursor->ptr[i] = cursor->ptr[i + 1];
+		{
+			if (i != cursor->fKeys.size())
+				cursor->ptr[i] = cursor->ptr[i + 1];
+			else
+				cursor->ptr[i] = nullptr;
+		}
 
 		for (pos = 0; pos < cursor->fKeys.size(); pos++)
 			if (cursor->fKeys[pos].first == kvp)
@@ -762,13 +776,13 @@ private:
 			{
 				cursor->fKeys.push_back(parent->fKeys[pos]);
 				parent->fKeys[pos] = rightNode->fKeys[0];
-				rightNode->fKeys.erase(rightNode->fKeys.begin());
 				cursor->ptr[cursor->fKeys.size()/*delete +1*/] = rightNode->ptr[0];
-				rightNode->fKeys.erase(rightNode->fKeys.begin());
+
 				for (int i = 0; i < rightNode->fKeys.size(); ++i)
 					rightNode->ptr[i] = rightNode->ptr[i + 1];
 
 				rightNode->ptr[rightNode->fKeys.size()] = nullptr;
+				rightNode->fKeys.erase(rightNode->fKeys.begin());
 				return;
 			}
 		}
@@ -777,14 +791,15 @@ private:
 		{
 			Node* leftNode = parent->ptr[leftSibling];
 			leftNode->fKeys.push_back(parent->fKeys[leftSibling]);
-			for (int j = 0; j < cursor->fKeys.size(); j++)
-				leftNode->fKeys.push_back(cursor->fKeys[j]);
 
-			for (int i = leftNode->fKeys.size() - 1, j = 0; i < fOrder + 1 && j < cursor->fKeys.size() + 1; j++, i++)
+			for (int i = leftNode->fKeys.size(), j = 0; i < fOrder + 1 && j < cursor->fKeys.size() + 1; j++, i++)
 			{
 				leftNode->ptr[i] = cursor->ptr[j];
 				cursor->ptr[j] = nullptr;
 			}
+
+			for (int j = 0; j < cursor->fKeys.size(); j++)
+				leftNode->fKeys.push_back(cursor->fKeys[j]);
 
 			removeInternal(parent->fKeys[leftSibling].first, parent, cursor);
 		}
@@ -792,14 +807,15 @@ private:
 		{
 			Node* rightNode = parent->ptr[rightSibling];
 			cursor->fKeys.push_back(parent->fKeys[rightSibling - 1]);
-			for (int j = 0; j < rightNode->fKeys.size(); j++)
-				cursor->fKeys.push_back(rightNode->fKeys[j]);
 
-			for (int i = cursor->fKeys.size() - 1, j = 0; i < fOrder + 1 && j < rightNode->fKeys.size() + 1; j++, i++)
+			for (int i = cursor->fKeys.size(), j = 0; i < fOrder + 1 && j < rightNode->fKeys.size() + 1; j++, i++)
 			{
 				cursor->ptr[i] = rightNode->ptr[j];
 				rightNode->ptr[j] = nullptr;
 			}
+
+			for (int j = 0; j < rightNode->fKeys.size(); j++)
+				cursor->fKeys.push_back(rightNode->fKeys[j]);
 
 			removeInternal(parent->fKeys[rightSibling - 1].first, parent, rightNode);
 		}

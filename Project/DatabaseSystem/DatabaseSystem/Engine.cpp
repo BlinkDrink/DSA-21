@@ -15,7 +15,7 @@ void Engine::menu()
 	cout << "Insert INTO {tableName} {(value1, value2...)}" << reset << endl;
 }
 
-unordered_map<string, string> Engine::getColNameType(string scheme)
+unordered_map<string, string> Engine::getColNameType(string scheme, vector<string>& colNames)
 {
 	unordered_map<string, string> colNameType;
 	scheme.erase(scheme.begin());
@@ -25,6 +25,7 @@ unordered_map<string, string> Engine::getColNameType(string scheme)
 	for (size_t i = 0; i < parts.size(); i++)
 	{
 		vector<string> tuple = sh::splitBy(parts[i], ":");
+		colNames.push_back(tuple[0]);
 		colNameType.insert({ tuple[0], tuple[1] });
 	}
 	return colNameType;
@@ -176,188 +177,246 @@ void Engine::run()
 	ifstream in(dbPath + dbName + ".bin", std::ios::binary);
 	if (!in.is_open())
 	{
-		cout << yellow << "Couldn't open DB for reading... Creating new file" << reset << endl;
+		cout << red << "Couldn't open DB for reading. Creating new file directory for database..." << reset << endl;
 		DataBase db(dbName, dbPath);
 	}
 	in.close();
 
-	ifstream inDb(dbPath + dbName + ".bin", std::ios::binary);
-	DataBase db(inDb);
-	inDb.close();
-
-	while (true)
+	try
 	{
-		string cmd;
-		cout << dbName << '>';
-		getline(cin, cmd);
+		ifstream inDb(dbPath + dbName + ".bin", std::ios::binary);
+		DataBase db(inDb);
+		inDb.close();
 
-		cp.clearCmd();
-		try
+		while (true)
 		{
-			cp.setData(cmd);
-		}
-		catch (const invalid_argument& e)
-		{
-			cout << red << e.what() << reset << endl;
-			continue;
-		}
+			string cmd;
+			cout << dbName << '>';
+			getline(cin, cmd);
 
-		switch (cp.getCommandType())
-		{
-		case CommandType::CREATE_TABLE:
+			cp.clearCmd();
 			try
 			{
-				string tblName = cp.atToken(1);
-				unordered_map<string, string> scheme = getColNameType(cp.atToken(2));
-				string primaryKey = cp.size() >= 6 ? cp.atToken(5) : "";
-				db.createTable(dbPath, tblName, scheme, primaryKey);
+				cp.setData(cmd);
 			}
 			catch (const invalid_argument& e)
 			{
 				cout << red << e.what() << reset << endl;
-				break;
-			}
-			catch (const out_of_range& e)
-			{
-				cout << red << e.what() << reset << endl;
-				break;
+				continue;
 			}
 
-			cout << green << "Table " << cp.atToken(1) << " created!" << reset << endl;
-			break;
-		case CommandType::DROP_TABLE:
-			try
+			switch (cp.getCommandType())
 			{
-				string tblName = cp.atToken(1);
-				db.dropTable(tblName);
-			}
-			catch (const invalid_argument& e)
-			{
-				cout << red << e.what() << reset << endl;
-				break;
-			}
-			catch (const out_of_range& e)
-			{
-				cout << red << e.what() << reset << endl;
-				break;
-			}
-
-			cout << green << "Table " << cp.atToken(1) << " created!" << reset << endl;
-			break;
-		case CommandType::LIST_TABLES:
-			cout << yellow << "There " << (db.getNumTables() == 1 ? "is " : "are ") << db.getNumTables() << "table in the database:" << reset << endl;
-			db.listTables();
-			break;
-		case CommandType::TABLE_INFO:
-			try
-			{
-				Table& t = db.getTable(cp.atToken(1));
-				string scheme = "(";
-				for (const pair<string, string>& entry : t.getTableScheme())
-					scheme += entry.first + ":" + entry.second + ", ";
-				scheme += ")";
-
-				cout << yellow << "Table " << cp.atToken(1) << " : " << scheme << reset << endl;
-			}
-			catch (const out_of_range& e)
-			{
-				cout << red << e.what() << reset << endl;
-				break;
-			}
-			catch (const invalid_argument& e)
-			{
-				cout << red << e.what() << reset << endl;
-			}
-			break;
-		case CommandType::INSERT:
-			try
-			{
-				size_t numRecords = 0;
-				string tblName = cp.atToken(2);
-				if (cp.size() > 4)
-					throw invalid_argument("Too many arguments for this command.");
-
-				size_t ind = 0;
-				unordered_map<size_t, string> indexColumn;
-				unordered_map<string, string> tableScheme = db.getTable(tblName).getTableScheme();
-				for (pair<string, string> entry : tableScheme)
-					indexColumn.insert({ ind++, entry.first });
-
-				vector<unordered_map<string, TypeWrapper>> values = getColNameValues(cp.atToken(3), tableScheme, indexColumn);
-				db.insert(tblName, values);
-				numRecords = values.size();
-				cout << green << "Total " << numRecords << " inserted." << reset << endl;
-			}
-			catch (const invalid_argument& e)
-			{
-				cout << red << e.what() << reset << endl;
-				break;
-			}
-			catch (const out_of_range& e)
-			{
-				cout << red << e.what() << reset << endl;
-				break;
-			}
-
-			break;
-		case CommandType::SELECT:
-			try
-			{
-				vector<string> selectedColumns = sh::splitBy(cp.atToken(1), ",");
-				string tblName = cp.atToken(3);
-				Table& target = db.getTable(tblName);
-				bool isDistinct = cp.isDistinct();
-				string orderBy = cp.getOrderBy();
-
-				if (cp.size() <= 4)
+			case CommandType::CREATE_TABLE:
+				try
 				{
-					Query q("", target.getTableScheme(), target.getPrimaryKey());
-					if (selectedColumns.size() == 1 && selectedColumns[0] == "*")
+					string tblName = cp.atToken(1);
+					vector<string> colNames;
+					unordered_map<string, string> scheme = getColNameType(cp.atToken(2), colNames);
+					string primaryKey = cp.size() >= 6 ? cp.atToken(5) : "";
+					db.createTable(dbPath, tblName, scheme, colNames, primaryKey);
+				}
+				catch (const invalid_argument& e)
+				{
+					cout << red << e.what() << reset << endl;
+					break;
+				}
+				catch (const out_of_range& e)
+				{
+					cout << red << e.what() << reset << endl;
+					break;
+				}
+
+				cout << green << "Table " << cp.atToken(1) << " created!" << reset << endl;
+				break;
+			case CommandType::DROP_TABLE:
+				try
+				{
+					string tblName = cp.atToken(1);
+					db.dropTable(tblName);
+				}
+				catch (const invalid_argument& e)
+				{
+					cout << red << e.what() << reset << endl;
+					break;
+				}
+				catch (const out_of_range& e)
+				{
+					cout << red << e.what() << reset << endl;
+					break;
+				}
+				catch (const exception& e)
+				{
+					cout << red << e.what() << reset << endl;
+					break;
+				}
+
+				cout << green << "Table " << cp.atToken(1) << " dropped!" << reset << endl;
+				break;
+			case CommandType::LIST_TABLES:
+				cout << yellow << "There " << (db.getNumTables() == 1 ? "is " : "are ") << db.getNumTables() << " tables in the database:" << reset << endl;
+				db.listTables();
+				break;
+			case CommandType::TABLE_INFO:
+				try
+				{
+					Table& t = db.getTable(cp.atToken(1));
+					string header = t.getTableHeader();
+					sh::trim(header);
+
+					vector<string> cols = sh::splitBy(header, ",");
+					sh::removeEmptyStringsInVector(cols);
+
+					string scheme = "(";
+					for (const string& name : cols)
+						scheme += name + ":" + t.getTableScheme().at(name) + ", ";
+
+					scheme += ") " + (t.getPrimaryKey().empty() ? "No Index on this table" : ("Index ON " + t.getPrimaryKey()));
+
+					cout << yellow << "Table " << cp.atToken(1) << " : " << scheme << endl;
+
+					if (t.getBytesData() < 1024)
 					{
-						selectedColumns = sh::splitBy(db.getTable(tblName).getTableHeader(), ", ");
-						sh::removeEmptyStringsInVector(selectedColumns);
-						vector<Record> answer = target.select(q, orderBy, isDistinct, selectedColumns);
-						printSelectedRecords(answer, selectedColumns, target.getColIndex());
+						cout << "(" << t.getBytesData() << " B data) in the table" << reset << endl;
 					}
 					else
 					{
-						vector<Record> answer = target.select(q, orderBy, isDistinct, selectedColumns);
-						printSelectedRecords(answer, selectedColumns, target.getColIndex());
+						cout << "(" << (t.getBytesData() / 1024) << " KB data) in the table" << reset << endl;
 					}
 				}
-				else
+				catch (const out_of_range& e)
 				{
-					Query query(cp.atToken(4), target.getTableScheme(), target.getPrimaryKey());
-					if (selectedColumns.size() == 1 && selectedColumns[0] == "*")
+					cout << red << e.what() << reset << endl;
+					break;
+				}
+				catch (const invalid_argument& e)
+				{
+					cout << red << e.what() << reset << endl;
+				}
+				break;
+			case CommandType::INSERT:
+				try
+				{
+					string tblName = cp.atToken(2);
+					if (cp.size() > 4)
 					{
-						selectedColumns = sh::splitBy(db.getTable(tblName).getTableHeader(), ", ");
-						sh::removeEmptyStringsInVector(selectedColumns);
-						vector<Record> answer = target.select(query, orderBy, isDistinct, selectedColumns);
-						printSelectedRecords(answer, selectedColumns, target.getColIndex());
+						cout << red << "Too many arguments for this command." << reset << endl;
+						break;
+					}
+
+					Table& target = db.getTable(tblName);
+					unordered_map<size_t, string> indexColumn;
+					unordered_map<string, string> tableScheme = target.getTableScheme();
+
+					size_t ind = 0;
+					vector<string> header = sh::splitBy(target.getTableHeader(), ",");
+					sh::removeEmptyStringsInVector(header);
+					for (const string& entry : header)
+						indexColumn.insert({ ind++, entry });
+
+					vector<unordered_map<string, TypeWrapper>> values = getColNameValues(cp.atToken(3), tableScheme, indexColumn);
+
+					db.insert(tblName, values);
+					cout << green << "Total " << values.size() << " rows inserted." << reset << endl;
+				}
+				catch (const invalid_argument& e)
+				{
+					cout << red << e.what() << reset << endl;
+					break;
+				}
+				catch (const out_of_range& e)
+				{
+					cout << red << e.what() << reset << endl;
+					break;
+				}
+
+				break;
+			case CommandType::SELECT:
+				try
+				{
+					vector<string> selectedColumns = sh::splitBy(cp.atToken(1), ",");
+					string tblName = cp.atToken(3);
+					Table& target = db.getTable(tblName);
+					bool isDistinct = cp.isDistinct();
+					string orderBy = cp.getOrderBy();
+
+					if (cp.size() <= 4)
+					{
+						Query q("", target.getTableScheme(), target.getPrimaryKey());
+						if (selectedColumns.size() == 1 && selectedColumns[0] == "*")
+						{
+							selectedColumns = sh::splitBy(db.getTable(tblName).getTableHeader(), ",");
+							sh::removeEmptyStringsInVector(selectedColumns);
+							vector<Record> answer = target.select(q, orderBy, isDistinct, selectedColumns);
+							printSelectedRecords(answer, selectedColumns, target.getColIndex());
+						}
+						else
+						{
+							vector<Record> answer = target.select(q, orderBy, isDistinct, selectedColumns);
+							printSelectedRecords(answer, selectedColumns, target.getColIndex());
+						}
 					}
 					else
 					{
-						vector<Record> answer = target.select(query, orderBy, isDistinct, selectedColumns);
-						printSelectedRecords(answer, selectedColumns, target.getColIndex());
+						Query query(cp.atToken(4), target.getTableScheme(), target.getPrimaryKey());
+						if (selectedColumns.size() == 1 && selectedColumns[0] == "*")
+						{
+							selectedColumns = sh::splitBy(db.getTable(tblName).getTableHeader(), ",");
+							sh::removeEmptyStringsInVector(selectedColumns);
+							vector<Record> answer = target.select(query, orderBy, isDistinct, selectedColumns);
+							printSelectedRecords(answer, selectedColumns, target.getColIndex());
+						}
+						else
+						{
+							vector<Record> answer = target.select(query, orderBy, isDistinct, selectedColumns);
+							printSelectedRecords(answer, selectedColumns, target.getColIndex());
+						}
 					}
 				}
+				catch (const invalid_argument& e)
+				{
+					cout << red << e.what() << reset << endl;
+					break;
+				}
+				catch (const out_of_range& e)
+				{
+					cout << red << e.what() << reset << endl;
+					break;
+				}
 
-			}
-			catch (const invalid_argument& e)
-			{
-				cout << red << e.what() << reset << endl;
+				break;
+			case CommandType::REMOVE:
+				try
+				{
+					string tblName = cp.atToken(2);
+					Table& target = db.getTable(tblName);
+					Query query(cp.atToken(3), target.getTableScheme(), target.getPrimaryKey());
+					cout << green << "Total " << db.remove(tblName, query) << " rows deleted from " << tblName << reset << endl;
+				}
+				catch (const invalid_argument& e)
+				{
+					cout << red << e.what() << reset << endl;
+					break;
+				}
+				catch (const out_of_range& e)
+				{
+					cout << red << e.what() << reset << endl;
+					break;
+				}
+
+				break;
+			case CommandType::EXIT:
+				db.save();
+				cout << green << "Goodbye" << reset << endl;
+				return;
+			case CommandType::NONE:
+				cout << red << "Unrecognized command." << reset << endl;
 				break;
 			}
-			catch (const out_of_range& e)
-			{
-				cout << red << e.what() << reset << endl;
-				break;
-			}
-
-			break;
-		case CommandType::EXIT:
-			cout << green << "Goodbye" << reset << endl;
-			return;
 		}
+	}
+	catch (const std::exception& e)
+	{
+		cout << red << e.what() << reset << endl;
 	}
 }

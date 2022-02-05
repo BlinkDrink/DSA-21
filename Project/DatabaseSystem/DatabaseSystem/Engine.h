@@ -27,7 +27,7 @@ private:
 	 * @param scheme - stringified table scheme
 	 * @return hashtable where each key is column name and value is column data type
 	*/
-	unordered_map<string, string> getColNameType(string scheme);
+	unordered_map<string, string> getColNameType(string scheme, vector<string>& colNames);
 
 	/**
 	 * @brief By given record in form {({DataType}, {DataType}, {DataType})} where each datatype corresponds to a column

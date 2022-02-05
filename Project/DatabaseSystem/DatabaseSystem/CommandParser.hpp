@@ -16,7 +16,7 @@ using std::vector;
 class CommandParser
 {
 private:
-	bool fIsDistinct;
+	bool fIsDistinct = false;
 	string fOrderBy;
 	string fRaw;
 	vector<string> fTokens;
@@ -52,14 +52,20 @@ public:
 				if (fTokens[i] == "WHERE")
 				{
 					i++;
-					while (i < fTokens.size() && (fTokens[i] != "ORDER" || fTokens[i] != "DISTINCT"))
+					while (i < fTokens.size() && (fTokens[i] != "ORDER" && fTokens[i] != "BY" && fTokens[i] != "DISTINCT"))
 					{
 						fTokens[currInd] += " " + fTokens[i];
 						i++;
 					}
 				}
+			}
+		}
 
-				if (i < fTokens.size() - 2 && fTokens[i] == "ORDER")
+		if (std::find(fTokens.begin(), fTokens.end(), "ORDER") != fTokens.end())
+		{
+			for (size_t i = 0; i < fTokens.size() - 1; i++)
+			{
+				if (i < fTokens.size() - 1 && fTokens[i] == "ORDER")
 				{
 					if (fTokens[i + 1] == "BY")
 					{
@@ -224,8 +230,10 @@ public:
 		{
 			return CommandType::SELECT;
 		}
+		else if (cmd == "EXIT")
+			return CommandType::EXIT;
 
-		return CommandType::EXIT;
+		return CommandType::NONE;
 	}
 
 	/// @brief Getter

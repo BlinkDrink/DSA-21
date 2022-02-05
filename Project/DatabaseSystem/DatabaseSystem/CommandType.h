@@ -7,5 +7,6 @@ enum class CommandType {
 	INSERT,
 	REMOVE,
 	SELECT,
-	EXIT
+	EXIT,
+	NONE
 };

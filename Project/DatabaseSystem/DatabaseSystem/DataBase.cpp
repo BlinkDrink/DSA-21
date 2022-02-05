@@ -15,7 +15,7 @@ DataBase::DataBase(ifstream& in)
 
 		ifstream tableReader(second + first + ".bin", std::ios::binary);
 		if (!tableReader.is_open())
-			throw invalid_argument("Couldn't open " + second + " path for reading.");
+			throw invalid_argument("Couldn't open " + second + " path for reading. Check for file corruption!");
 
 		fTables.insert({ first, Table(tableReader) });
 	}
@@ -29,12 +29,12 @@ DataBase::DataBase(const string& name, const string& path)
 	save();
 }
 
-void DataBase::createTable(const string& path, const string& tableName, unordered_map<string, string>& colNameType, const string primaryKey, int maxRecordsPerPage)
+void DataBase::createTable(const string& path, const string& tableName, unordered_map<string, string>& colNameType, vector<string>& colNames, const string primaryKey, int maxRecordsPerPage)
 {
 	if (fTables.find(tableName) != fTables.end())
 		throw invalid_argument("There is already a table with this name in the system");
 
-	Table t(fDBPath, tableName, colNameType, primaryKey, maxRecordsPerPage);
+	Table t(fDBPath, tableName, colNameType, colNames, primaryKey, maxRecordsPerPage);
 	fTables[tableName] = t;
 	save();
 }
@@ -42,27 +42,35 @@ void DataBase::createTable(const string& path, const string& tableName, unordere
 void DataBase::dropTable(const string& tableName)
 {
 	string pathToDelete = getTable(tableName).getTablePath();
-	bool status = remove(pathToDelete.c_str());
-	if (status != 0)
-		throw logic_error("Something happened while trying to drop the table with name " + tableName);
+	std::error_code errorCode;
+	if (!fs::remove_all(pathToDelete, errorCode))
+		throw logic_error(errorCode.message());
 
 	fTables.erase(tableName);
+	save();
 }
 
 void DataBase::insert(const string& tableName, vector<unordered_map<string, TypeWrapper>> colNameValueList)
 {
 	for (size_t i = 0; i < colNameValueList.size(); i++)
-		fTables[tableName].insert(colNameValueList[i]);
+		getTable(tableName).insert(colNameValueList[i]);
 
 	save();
 }
 
+int DataBase::remove(const string& tableName, Query& query)
+{
+	int deletedRecords = getTable(tableName).deleteRecord(query);
+
+	save();
+	return deletedRecords;
+}
+
+
 void DataBase::listTables() const
 {
 	for (const pair<string, Table>& entry : fTables)
-	{
-		std::cout << entry.first << "\n";
-	}
+		std::cout << "\t-" << entry.first << "\n";
 }
 
 Table& DataBase::getTable(const string& name)

@@ -193,8 +193,11 @@ public:
 			else if (subStr == "(" || subStr == ")")
 				result += " " + subStr;
 
-			exp.erase(0, pos + 1);
+			pos != exp.npos ? exp.erase(0, pos + 1) : exp.erase(0, exp.size());
 		}
+
+		if (!exp.empty())
+			result += " " + exp;
 
 		fQuery = result;
 		sh::trim(fQuery);
@@ -276,20 +279,8 @@ private:
 		while (!expression.empty())
 		{
 			size_t pos = expression.find(" ");
-			if (pos == expression.npos)
-			{
-				if (expression.empty())
-				{
-					break;
-				}
-				else
-				{
-					output.push(expression);
-					break;
-				}
-			}
 
-			string element = expression.substr(0, pos);
+			string element = pos != expression.npos ? expression.substr(0, pos) : expression;
 
 			if (element == " ")
 			{
@@ -317,7 +308,7 @@ private:
 				if (!operators.empty())
 					operators.pop();
 			}
-			else
+			else if (element == "AND" || element == "OR")
 			{
 				while (!operators.empty() && precedence(operators.top()) >= precedence(element))
 				{
@@ -331,7 +322,7 @@ private:
 				operators.push(element);
 			}
 
-			expression.erase(0, pos + 1);
+			pos != expression.npos ? expression.erase(0, pos + 1) : expression.erase(0, expression.size());
 		}
 
 		while (!operators.empty())

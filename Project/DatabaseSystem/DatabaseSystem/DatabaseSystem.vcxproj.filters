@@ -52,9 +52,6 @@
     <Filter Include="Header Files\Engine">
       <UniqueIdentifier>{b8b5393f-3849-4fa3-848c-92855d068a28}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\Engine">
-      <UniqueIdentifier>{3a5b3596-35f3-4cbc-b2d2-3bb26015aaf2}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\Helper">
       <UniqueIdentifier>{143ce9d7-9458-45b6-90ec-99238903d9d6}</UniqueIdentifier>
     </Filter>
@@ -66,6 +63,9 @@
     </Filter>
     <Filter Include="Header Files\Helper\Query">
       <UniqueIdentifier>{42bb47ca-1b02-4253-b11f-e83ffa6feab1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Engine">
+      <UniqueIdentifier>{3a5b3596-35f3-4cbc-b2d2-3bb26015aaf2}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

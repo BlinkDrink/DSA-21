@@ -74,8 +74,6 @@ public:
 
 		return false;
 	}
-
-
 private:
 	int pageNumber, indexInPage;
 };

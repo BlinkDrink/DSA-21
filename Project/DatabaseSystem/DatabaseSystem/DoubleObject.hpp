@@ -47,7 +47,7 @@ private:
 	virtual bool isGreaterThan(const Object& other) const final override
 	{
 		double otherfValue = static_cast<const DoubleObject&>(other).fValue;
-		return (fValue - otherfValue) > (fabs(fValue) < abs(otherfValue) ? abs(otherfValue) : abs(fValue) * std::numeric_limits<double>::epsilon());
+		return (fValue - otherfValue) > ((fabs(fValue) < abs(otherfValue) ? abs(otherfValue) : abs(fValue)) * std::numeric_limits<double>::epsilon());
 	}
 
 	virtual bool isEqualTo(const Object& other) const final override
@@ -58,6 +58,6 @@ private:
 	virtual bool isLesserThan(const Object& other) const final override
 	{
 		double otherfValue = static_cast<const DoubleObject&>(other).fValue;
-		return (otherfValue - fValue) > (fabs(fValue) < abs(otherfValue) ? abs(otherfValue) : abs(fValue) * std::numeric_limits<double>::epsilon());
+		return (otherfValue - fValue) > ((fabs(fValue) < abs(otherfValue) ? abs(otherfValue) : abs(fValue)) * std::numeric_limits<double>::epsilon());
 	}
 };
