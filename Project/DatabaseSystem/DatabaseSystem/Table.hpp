@@ -571,11 +571,11 @@ public:
 					for (size_t i = 0; i < page.size(); i++)
 					{
 						Record r = page.get(i);
-						if (query.checkRecordAgainstQuery(r, colIndex))
+
+						if (!r.isInvalid() && query.checkRecordAgainstQuery(r, colIndex))
 						{
 							bytes -= r.getKiloBytesData();
 							page.removeRecord(i);
-							deleteRecord(r);
 							deletedRecords++;
 						}
 					}

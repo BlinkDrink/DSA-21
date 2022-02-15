@@ -150,11 +150,13 @@ public:
 	*/
 	void insert(data kvp)
 	{
-		if (root == nullptr) {
+		if (root == nullptr)
+		{
 			root = new Node(fOrder, true);
 			root->fKeys.push_back(kvp);
 		}
-		else {
+		else
+		{
 			Node* cursor = root;
 			Node* parent = nullptr;
 			while (cursor->fIsLeaf == false)
@@ -176,7 +178,8 @@ public:
 				}
 			}
 
-			if (cursor->fKeys.size() < fOrder) {
+			if (cursor->fKeys.size() < fOrder)
+			{
 				size_t pos = 0;
 				while (pos < cursor->fKeys.size() && kvp.first > cursor->fKeys[pos].first)
 					pos++;
@@ -197,7 +200,8 @@ public:
 					newRoot->ptr[1] = newLeaf;
 					root = newRoot;
 				}
-				else {
+				else
+				{
 					insertInternal(newLeaf->fKeys[0], parent, newLeaf);
 				}
 			}

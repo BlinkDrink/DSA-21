@@ -3,7 +3,8 @@
 #include "FileHelper.hpp"
 using fh = FileHelper;
 
-class Page {
+class Page
+{
 
 private:
 	/**
@@ -16,18 +17,17 @@ private:
 	vector<Record> records;
 
 public:
-
-	Page(ifstream& in)
+	Page(ifstream &in)
 	{
 		/// @brief Read page's max capacity to object
-		in.read((char*)&maxSize, sizeof(maxSize));
+		in.read((char *)&maxSize, sizeof(maxSize));
 
 		/// @brief Read page's path to object
 		fh::readString(in, path);
 
-		/// @brief Read number of records 
+		/// @brief Read number of records
 		size_t num_records = 0;
-		in.read((char*)&num_records, sizeof(num_records));
+		in.read((char *)&num_records, sizeof(num_records));
 
 		/// @brief Read records themselves
 		for (size_t i = 0; i < num_records; i++)
@@ -43,7 +43,7 @@ public:
 	 * @param maxSize the maximum number of records that fit in one page
 	 * @param path the path at which the page is stored relative to the executable files
 	 */
-	Page(int maxSize, const string& path)
+	Page(int maxSize, const string &path)
 	{
 		this->path = path;
 		this->maxSize = maxSize;
@@ -63,9 +63,8 @@ public:
 	 * Insert a new record at the end of the page
 	 * @param record the record to be inserted
 	 * @return a boolean to indicate a successful/failed insertion
-	 * @throws IOException If an I/O error occurred
 	 */
-	bool addRecord(const Record& record)
+	bool addRecord(const Record &record)
 	{
 		if (isFull())
 			return false;
@@ -88,7 +87,7 @@ public:
 
 	/**
 	 * @brief Save the page on the disk
-	*/
+	 */
 	void save()
 	{
 		ofstream out(path, std::ios::binary);
@@ -96,14 +95,14 @@ public:
 			throw std::logic_error("Couldn't open file to save page " + path);
 
 		/// @brief Save page's max capacity to file
-		out.write((char*)&maxSize, sizeof(maxSize));
+		out.write((char *)&maxSize, sizeof(maxSize));
 
 		/// @brief Save page's path to file
 		fh::writeString(out, path);
 
 		/// @brief Save page's number of current records to file
 		size_t size = records.size();
-		out.write((char*)&size, sizeof(size));
+		out.write((char *)&size, sizeof(size));
 
 		/// @brief Save the records themseleves to file
 		for (size_t i = 0; i < records.size(); i++)
